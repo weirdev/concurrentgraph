@@ -1,6 +1,8 @@
 use std::io;
 use std::thread;
 use std::sync::Arc;
+use std::sync::Mutex;
+use std::rc::Rc;
 
 #[macro_use(array)]
 extern crate ndarray;
@@ -36,7 +38,7 @@ struct Node {
 
 struct Graph {
     nodes: Vec<Node>,
-    weights: Array2<f32>
+    weights: Mutex<Arc<Array2<f32>>>
 }
 
 fn remove_weight_mat_self_refs(weight_mat: &mut Array2<f32>) {
@@ -45,31 +47,41 @@ fn remove_weight_mat_self_refs(weight_mat: &mut Array2<f32>) {
     }
 }
 
-fn generic_mat_vec_mult<'a, D>(mat: Arc<Array2<D>>, vector: &Vec<D>, 
+fn generic_mat_vec_mult<'a, D>(mat_lock: &Mutex<Arc<Array2<D>>>, vector: Vec<D>, 
         op1: Arc<(Fn(&D, &D) -> D) + Sync + Send>, op2: Arc<(Fn(&D, &D) -> D) + Sync + Send>, initial_val: D) -> Result<Vec<D>, &'a str> 
             where D: Copy + Sync + Send + 'static {
+    let mat = mat_lock.lock().unwrap();
     if mat.shape()[1] != vector.len() {
         return Err("Incompatible dimensions");
         
     } else {
         let mut result: Vec<D> = Vec::with_capacity(mat.shape()[0]);
-        
-        let arc_vector = Arc::new(*vector);
-        let handles: Vec<thread::JoinHandle<()>> = Vec::new();
-        for (i, row) in mat.outer_iter().enumerate() {
+        for _ in 0..mat.shape()[0] {
             result.push(initial_val);
-            let arc_row = Arc::new(row);
+        }
+        let locked_result = Arc::new(Mutex::new(result));
+        
+        let arc_vector = Arc::new(vector);
+        let mut handles: Vec<thread::JoinHandle<()>> = Vec::new();
+        for i in 0..mat.shape()[0] {
+            let mat_ref = Arc::clone(&mat);
+            let vec_ref = Arc::clone(&arc_vector);
+            let op1_ref = Arc::clone(&op1);
+            let op2_ref = Arc::clone(&op2);
+            let res_ref = Arc::clone(&locked_result);
             let handle = thread::spawn(move || {
-                for j in 0..arc_vector.len() {
-                    result[i] = op2(&result[i], &op1(&row[j], &arc_vector[j]));
+                let mut r = initial_val;
+                for j in 0..vec_ref.len() {
+                    r = op2_ref(&r, &op1_ref(&mat_ref[(i, j)], &vec_ref[j]));
                 }
+                res_ref.lock().unwrap()[i] = r;
             });
             handles.push(handle);
         }
-        for h in handles.iter() {
-            h.join();
+        while handles.len() > 0 {
+            handles.pop().unwrap().join();
         }
-        return Ok(result);
+        return Ok(locked_result.lock().unwrap().to_vec());
     }
 }
 
@@ -110,7 +122,7 @@ impl Graph {
                 status: AgentStatus::Asymptomatic,
                 infections: Vec::new()
             }; n],
-            weights: Array2::from_elem((n, n), 1.0)
+            weights: Mutex::new(Arc::new(Array2::from_elem((n, n), 1.0)))
         }
     }
 
@@ -118,7 +130,7 @@ impl Graph {
         let mut w = Array2::from_elem((nodes.len(), nodes.len()), connection_weights);
         remove_weight_mat_self_refs(&mut w);
         Graph {
-            weights: w,
+            weights: Mutex::new(Arc::new(w)),
             nodes: nodes
         }
     }
@@ -140,10 +152,11 @@ impl Graph {
     }
 
     fn simulate_basic_looped_stochastic(&mut self, steps: usize, diseases: &[&Disease]) {
+        let mut mat = self.weights.lock().unwrap();
         for t in 0..steps {
             let mut new_nodes: Vec<Node> = Vec::new();
             // For each node and its outgoing edges
-            for (nodenum, (node, adj_weights)) in self.nodes.iter().zip(self.weights.outer_iter()).enumerate() {
+            for (nodenum, (node, adj_weights)) in self.nodes.iter().zip(mat.outer_iter()).enumerate() {
                 let new_node = match node.status {
                     // Node is asymptomatic (just means alive for basic simulation),
                     // check if it gets infected by a disease, or dies from a disease
@@ -196,7 +209,7 @@ impl Graph {
                 new_nodes.push(new_node);
             }
             self.nodes = new_nodes;
-            println!("T{}: {} dead, {} infected", t, self.dead_count(), self.infected_count(0));
+            //println!("T{}: {} dead, {} infected", t, self.dead_count(), self.infected_count(0));
         }
     }
 
@@ -206,7 +219,7 @@ impl Graph {
             // TODO: matrix*diag can be more efficient, also should be
             // able to avoid alloc of second matrix
             // https://docs.rs/ndarray/0.12.1/ndarray/linalg/fn.general_mat_mul.html
-            let node_transmitivity = self.nodes.iter().map(|n| match n.status {
+            let node_transmitivity: Vec<f32> = self.nodes.iter().map(|n| match n.status {
                 AgentStatus::Asymptomatic => match n.infections[0] {
                     InfectionStatus::Infected(t) => 
                             (*diseases[0].shedding_fun)(t as isize) * diseases[0].transmission_rate,
@@ -215,7 +228,8 @@ impl Graph {
                 AgentStatus::Dead => 0.0
             }).collect();
             
-            let pr_no_infections = generic_mat_vec_mult(&self.weights, &node_transmitivity, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap();
+            let nodetrans_copy = node_transmitivity.clone();
+            let pr_no_infections = generic_mat_vec_mult(&self.weights, nodetrans_copy, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap();
 
             //println!("t: {}, n_infection_prs: {:?}", t, log_pr_infections.iter().map(|l| (2.0 as f32).powf(*l)).collect::<Vec<f32>>());
 
@@ -254,12 +268,13 @@ impl Graph {
                 },
                 AgentStatus::Dead => n.clone()
             }).collect();
-            println!("T{}: {} dead, {} infected", t, self.dead_count(), self.infected_count(0));
+            //println!("T{}: {} dead, {} infected", t, self.dead_count(), self.infected_count(0));
         }
     }
 
     fn simulate_basic_looped_deterministic(&mut self, steps: usize, diseases: &[&Disease]) {
-        let mut determ_weights = deterministic_weights(&self.weights);
+        let mat = self.weights.lock().unwrap();
+        let mut determ_weights = deterministic_weights(&mat);
         for t in 0..steps {
             let mut new_nodes: Vec<Node> = Vec::new();
             // For each node and its outgoing edges
@@ -332,7 +347,8 @@ impl Graph {
     }
 
     fn simulate_simplistic_mat_deterministic(&mut self, steps: usize, diseases: &[&Disease]) {
-        let mut determ_weights = deterministic_weights(&self.weights);
+        let mat = self.weights.lock().unwrap();
+        let mut determ_weights = deterministic_weights(&mat);
         for t in 0..steps {
             //println!("t: {}, n_infection_prs: {:?}", t, log_pr_infections.iter().map(|l| (2.0 as f32).powf(*l)).collect::<Vec<f32>>());
             self.nodes = self.nodes.iter().enumerate().map(|(i, n)| match n.status {
@@ -377,7 +393,8 @@ impl Graph {
     }
 
     fn simulate_basic_looped_deterministic_shedding_incorrect(&mut self, steps: usize, diseases: &[&Disease]) {
-        let mut determ_weights = deterministic_weights(&self.weights);
+        let mat = self.weights.lock().unwrap();
+        let mut determ_weights = deterministic_weights(&mat);
         for t in 0..steps {
             let mut new_nodes: Vec<Node> = Vec::new();
             // For each node and its outgoing edges
@@ -476,7 +493,7 @@ fn new_sim_graph(n: usize, connectivity: f32, infection: &Disease)  -> Graph {
 }
 
 fn test_basic_stochastic(disease: &Disease) -> io::Result<()> {
-    let mut graph = new_sim_graph(100, 0.3, disease);
+    let mut graph = new_sim_graph(1000, 0.3, disease);
     graph.simulate_basic_looped_stochastic(200, &[disease]);
     println!("{} dead", graph.dead_count());
     println!("{} infected", graph.infected_count(0));
@@ -484,7 +501,7 @@ fn test_basic_stochastic(disease: &Disease) -> io::Result<()> {
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;
     
-    let mut graph = new_sim_graph(100, 0.3, disease);
+    let mut graph = new_sim_graph(1000, 0.3, disease);
     graph.simulate_basic_mat_stochastic(200, &[disease]);
     println!("{} dead", graph.dead_count());
     println!("{} infected", graph.infected_count(0));
@@ -519,8 +536,8 @@ fn main() -> io::Result<()> {
         shedding_fun: Box::new(|d| if d > 0 {1.0 / d as f32} else {0.0})
     };
 
-    //test_basic_stochastic(&flu)?;
-    test_basic_deterministic(&flu)?;
+    test_basic_stochastic(&flu)?;
+    //test_basic_deterministic(&flu)?;
 
     Ok(())
 }
