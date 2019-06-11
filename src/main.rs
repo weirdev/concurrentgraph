@@ -11,6 +11,8 @@ use ndarray::{Array, Array2, Axis};
 use rand::prelude::*;
 use rand::distributions::{Poisson, Gamma};
 
+mod external_adaptor;
+
 #[derive(Clone)]
 #[derive(Copy)]
 #[derive(Debug)]

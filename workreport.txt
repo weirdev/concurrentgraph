@@ -1,0 +1,24 @@
+Week 1:
+    Implemented several different strategies for disease spread simulation.
+    Classified relationships as per edge, per transmitting node, or per receiving node
+    Edge:
+        Interaction probability
+    Transmitting node:
+        Disease transmission rate
+        Disease shedding rate (parameterized by time infected)
+    Receiving node:
+        Immunity
+
+    First I constructed a stochastic looped simulation (CS1)
+        Worst case O(t*n^2)
+        At every step, for every node, check for infection from each of its neighbors
+
+    Next I constructed a stochastic simulation using generalized matrix vector multiplication
+        Generalized MVM replaces standard (*, +) MVM with any two communitive operators (op1, op2)
+        With op1 = (a, b) => 1.0 - a*b, I use (op1, *) MVM to compute the probability, for each node, 
+            that an infection will not occur.
+        I then use this calculated probability to calculate, for each node, whether it has been infected
+        Worst case: t * (parallelizable O(n^2) MVM operations + parallelizable O(n) decisions on node state)
+
+    I experimented with deterministic simulations
+        This was somewhat less sucessful, I was able to create efficient working simulations, but only if shedding was ignored
