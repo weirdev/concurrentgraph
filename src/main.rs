@@ -13,7 +13,7 @@ use rand::distributions::{Poisson, Gamma};
 
 mod external_adaptor;
 
-use external_adaptor::negative_prob_multiply_matrix_vector_safe;
+use external_adaptor::{negative_prob_multiply_matrix_vector_safe, hello_safe};
 
 #[derive(Clone)]
 #[derive(Copy)]
@@ -268,6 +268,8 @@ impl Graph {
                 AgentStatus::Dead => 0.0
             }).collect();
             
+            //hello_safe();
+
             let nodetrans_copy = node_transmitivity.clone();
             let pr_no_infections;
             if multithread {
@@ -538,7 +540,7 @@ fn new_sim_graph(n: usize, connectivity: f32, infection: &Disease)  -> Graph {
 }
 
 fn test_basic_stochastic(disease: &Disease) -> io::Result<()> {
-    let mut graph = new_sim_graph(100, 0.3, disease);
+    let mut graph = new_sim_graph(1000, 0.3, disease);
     let start_time = SystemTime::now();
     //graph.simulate_basic_looped_stochastic(200, &[disease]);
     graph.simulate_basic_mat_stochastic(200, &[disease], false);
@@ -548,7 +550,7 @@ fn test_basic_stochastic(disease: &Disease) -> io::Result<()> {
     println!("{} infected", graph.infected_count(0));
     println!("Ran in {} secs", runtime.as_secs());
     
-    let mut graph = new_sim_graph(100, 0.3, disease);
+    let mut graph = new_sim_graph(1000, 0.3, disease);
     let start_time = SystemTime::now();
     graph.simulate_basic_mat_stochastic(200, &[disease], true);
     let runtime = SystemTime::now().duration_since(start_time)
