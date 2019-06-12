@@ -13,6 +13,8 @@ use rand::distributions::{Poisson, Gamma};
 
 mod external_adaptor;
 
+use external_adaptor::negative_prob_multiply_matrix_vector_safe;
+
 #[derive(Clone)]
 #[derive(Copy)]
 #[derive(Debug)]
@@ -257,9 +259,6 @@ impl Graph {
     fn simulate_basic_mat_stochastic(&mut self, steps: usize, diseases: &[&Disease], multithread: bool) {
         //let mut node_transmitivity = Array2::<f32>::zeros((self.nodes.len(), self.nodes.len()));
         for t in 0..steps {
-            // TODO: matrix*diag can be more efficient, also should be
-            // able to avoid alloc of second matrix
-            // https://docs.rs/ndarray/0.12.1/ndarray/linalg/fn.general_mat_mul.html
             let node_transmitivity: Vec<f32> = self.nodes.iter().map(|n| match n.status {
                 AgentStatus::Asymptomatic => match n.infections[0] {
                     InfectionStatus::Infected(t) => 
@@ -272,7 +271,7 @@ impl Graph {
             let nodetrans_copy = node_transmitivity.clone();
             let pr_no_infections;
             if multithread {
-                pr_no_infections = generic_mat_vec_mult_multi_thread(&self.weights, nodetrans_copy, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap();
+                pr_no_infections = negative_prob_multiply_matrix_vector_safe(&self.weights, nodetrans_copy).unwrap();
             } else {
                 pr_no_infections = generic_mat_vec_mult_single_thread(&self.weights, nodetrans_copy, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap();
             }
@@ -539,19 +538,19 @@ fn new_sim_graph(n: usize, connectivity: f32, infection: &Disease)  -> Graph {
 }
 
 fn test_basic_stochastic(disease: &Disease) -> io::Result<()> {
-    let mut graph = new_sim_graph(10000, 0.3, disease);
+    let mut graph = new_sim_graph(100, 0.3, disease);
     let start_time = SystemTime::now();
     //graph.simulate_basic_looped_stochastic(200, &[disease]);
-    graph.simulate_basic_mat_stochastic(200, &[disease], true);
+    graph.simulate_basic_mat_stochastic(200, &[disease], false);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     println!("{} dead", graph.dead_count());
     println!("{} infected", graph.infected_count(0));
     println!("Ran in {} secs", runtime.as_secs());
     
-    let mut graph = new_sim_graph(10000, 0.3, disease);
+    let mut graph = new_sim_graph(100, 0.3, disease);
     let start_time = SystemTime::now();
-    graph.simulate_basic_mat_stochastic(200, &[disease], false);
+    graph.simulate_basic_mat_stochastic(200, &[disease], true);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     println!("{} dead", graph.dead_count());
