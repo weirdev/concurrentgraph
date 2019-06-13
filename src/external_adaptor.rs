@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 extern crate ndarray;
 
-use ndarray::{Array, Array2, Axis};
+use ndarray::Array2;
 
 #[link(name = "concurrentgraph_cuda")]
 extern {

@@ -579,6 +579,23 @@ fn test_basic_deterministic(disease: &Disease) -> io::Result<()> {
     Ok(())
 }
 
+fn test_mat_mul(iters: usize, graph_size: usize, disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
+    let graph = new_sim_graph(graph_size, 0.3, disease);
+    let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
+    let start_time = SystemTime::now();
+    for _ in 0..iters {
+        match mat_mul_fun {
+            MatMulFunction::MultiThreaded => generic_mat_vec_mult_multi_thread(&graph.weights, vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0),
+            MatMulFunction::SingleThreaded => negative_prob_multiply_matrix_vector_cpu_safe(&graph.weights, vector.clone()),
+            MatMulFunction::GPU => negative_prob_multiply_matrix_vector_gpu_safe(&graph.weights, vector.clone())
+        }.expect("Run failed");
+    }
+    let runtime = SystemTime::now().duration_since(start_time)
+        .expect("Time went backwards");
+    println!("Ran in {} ms", runtime.as_millis());
+    Ok(())
+}
+
 fn main() -> io::Result<()> {
     let flu = Disease {
         name: "flu",
@@ -590,9 +607,14 @@ fn main() -> io::Result<()> {
         shedding_fun: Box::new(|d| if d > 0 {1.0 / d as f32} else {0.0})
     };
 
-    test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
-    test_basic_stochastic(&flu, MatMulFunction::GPU)?;
+    //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
+    //test_basic_stochastic(&flu, MatMulFunction::GPU)?;
     //test_basic_deterministic(&flu)?;
+    println!("GPU test");
+    test_mat_mul(1, 10000, &flu, MatMulFunction::GPU);
+
+    println!("CPU single thread test");
+    test_mat_mul(1, 10000, &flu, MatMulFunction::SingleThreaded);
 
     Ok(())
 }
