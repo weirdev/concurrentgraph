@@ -8,6 +8,7 @@ build = "build.rs"
 [dependencies]
 ndarray = "0.11"
 rand = "0.6.0"
+libc = "*"
 
 [target.x86_64-unknown-linux-gnu]
 linker = "x86_64-linux-gnu-gcc"

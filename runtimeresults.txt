@@ -33,3 +33,41 @@ y ~= 4.912*10(-8)
 
 
 Iterated inside data loading:
+GPU test
+100 iters, 10_000 size mat
+Ran in 7 secs
+
+100 iters, 15_000 size mat
+Ran in 18 secs
+
+CPU-ST test
+100 iters, 10_000 size mat
+Ran in 465 secs
+
+100 iters, 15_000 size mat
+Ran in 1065 secs
+
+time per iter
+GPU test
+10_000 size mat
+.07
+15_000 size mat
+.18
+
+CPU-ST test
+10_000 size mat
+4.65
+15_000 size mat
+10.65
+
+GPU test
+(10_000^2)*x = .07 => x = 7*10^(-10)
+(15_000^2)*x = .18 => x = 8*10^(-10)
+7.5*10(-10) s / computation
+
+CPU-ST test
+(10_000^2)*x = 4.65 => x = 4.65*10^(-8)
+(15_000^2)*x = 10.65 => x = 4.73*10^(-8)
+4.69*10^(-8) / computation
+
+~62.53x speedup from GPU

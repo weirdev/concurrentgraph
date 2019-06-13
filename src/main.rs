@@ -13,7 +13,7 @@ use rand::distributions::{Poisson, Gamma};
 
 mod external_adaptor;
 
-use external_adaptor::{negative_prob_multiply_matrix_vector_cpu_safe, negative_prob_multiply_matrix_vector_gpu_safe};
+use external_adaptor::*;
 
 #[derive(Clone)]
 #[derive(Copy)]
@@ -264,6 +264,17 @@ impl Graph {
 
     fn simulate_basic_mat_stochastic(&mut self, steps: usize, diseases: &[&Disease], mat_mul_func: MatMulFunction) {
         //let mut node_transmitivity = Array2::<f32>::zeros((self.nodes.len(), self.nodes.len()));
+        let mut gpu_allocations: Option<NpmmvGpuAllocations> = None;
+        match mat_mul_func {
+            MatMulFunction::GPU => {
+                let mat = self.weights.lock().unwrap();
+                let ga = npmmv_gpu_allocate_safe(mat.shape()[0], mat.shape()[1]);
+                npmmv_gpu_set_matrix_safe(&mat, ga);
+                gpu_allocations = Some(ga);
+            },
+            _ => ()
+        }
+
         for t in 0..steps {
             let node_transmitivity: Vec<f32> = self.nodes.iter().map(|n| match n.status {
                 AgentStatus::Asymptomatic => match n.infections[0] {
@@ -280,7 +291,17 @@ impl Graph {
             let pr_no_infections = match mat_mul_func {
                 MatMulFunction::SingleThreaded => negative_prob_multiply_matrix_vector_cpu_safe(1, &self.weights, nodetrans_copy).unwrap(),
                 MatMulFunction::MultiThreaded => generic_mat_vec_mult_multi_thread(&self.weights, nodetrans_copy, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap(),
-                MatMulFunction::GPU => negative_prob_multiply_matrix_vector_gpu_safe(1, &self.weights, nodetrans_copy).unwrap()
+                MatMulFunction::GPU => {
+                    match gpu_allocations {
+                        Some(ga) => {
+                            npmmv_gpu_set_in_vector_safe(nodetrans_copy, ga);
+                            let mat = self.weights.lock().unwrap();
+                            npmmv_gpu_compute_safe(ga, mat.shape()[0], mat.shape()[1]);
+                            npmmv_gpu_get_out_vector_safe(ga, mat.shape()[1])
+                        },
+                        None => panic!("Should never reach here")
+                    }
+                }
             };
 
             //println!("t: {}, n_infection_prs: {:?}", t, log_pr_infections.iter().map(|l| (2.0 as f32).powf(*l)).collect::<Vec<f32>>());
@@ -321,6 +342,11 @@ impl Graph {
                 AgentStatus::Dead => n.clone()
             }).collect();
             //println!("T{}: {} dead, {} infected", t, self.dead_count(), self.infected_count(0));
+        }
+
+        match gpu_allocations {
+            Some(ga) => npmmv_gpu_free_safe(ga),
+            None => ()
         }
     }
 
