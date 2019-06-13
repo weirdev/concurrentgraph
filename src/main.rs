@@ -278,9 +278,9 @@ impl Graph {
 
             let nodetrans_copy = node_transmitivity.clone();
             let pr_no_infections = match mat_mul_func {
-                MatMulFunction::SingleThreaded => negative_prob_multiply_matrix_vector_cpu_safe(&self.weights, nodetrans_copy).unwrap(),
+                MatMulFunction::SingleThreaded => negative_prob_multiply_matrix_vector_cpu_safe(1, &self.weights, nodetrans_copy).unwrap(),
                 MatMulFunction::MultiThreaded => generic_mat_vec_mult_multi_thread(&self.weights, nodetrans_copy, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap(),
-                MatMulFunction::GPU => negative_prob_multiply_matrix_vector_gpu_safe(&self.weights, nodetrans_copy).unwrap()
+                MatMulFunction::GPU => negative_prob_multiply_matrix_vector_gpu_safe(1, &self.weights, nodetrans_copy).unwrap()
             };
 
             //println!("t: {}, n_infection_prs: {:?}", t, log_pr_infections.iter().map(|l| (2.0 as f32).powf(*l)).collect::<Vec<f32>>());
@@ -579,15 +579,15 @@ fn test_basic_deterministic(disease: &Disease) -> io::Result<()> {
     Ok(())
 }
 
-fn test_mat_mul(iters: usize, graph_size: usize, disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
+fn test_mat_mul(iters: isize, graph_size: usize, disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
     let graph = new_sim_graph(graph_size, 0.3, disease);
     let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
     let start_time = SystemTime::now();
-    for _ in 0..iters {
+    for _ in 0..1 {
         match mat_mul_fun {
             MatMulFunction::MultiThreaded => generic_mat_vec_mult_multi_thread(&graph.weights, vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0),
-            MatMulFunction::SingleThreaded => negative_prob_multiply_matrix_vector_cpu_safe(&graph.weights, vector.clone()),
-            MatMulFunction::GPU => negative_prob_multiply_matrix_vector_gpu_safe(&graph.weights, vector.clone())
+            MatMulFunction::SingleThreaded => negative_prob_multiply_matrix_vector_cpu_safe(iters, &graph.weights, vector.clone()),
+            MatMulFunction::GPU => negative_prob_multiply_matrix_vector_gpu_safe(iters, &graph.weights, vector.clone())
         }.expect("Run failed");
     }
     let runtime = SystemTime::now().duration_since(start_time)
@@ -611,10 +611,16 @@ fn main() -> io::Result<()> {
     //test_basic_stochastic(&flu, MatMulFunction::GPU)?;
     //test_basic_deterministic(&flu)?;
     println!("GPU test");
-    test_mat_mul(500, 5000, &flu, MatMulFunction::GPU);
+    println!("100 iters, 10_000 size mat");
+    test_mat_mul(100, 10_000, &flu, MatMulFunction::GPU)?;
+    println!("100 iters, 15_000 size mat");
+    test_mat_mul(100, 15_000, &flu, MatMulFunction::GPU)?;
 
     println!("CPU single thread test");
-    test_mat_mul(500, 5000, &flu, MatMulFunction::SingleThreaded);
+    println!("100 iters, 10_000 size mat");
+    test_mat_mul(100, 10_000, &flu, MatMulFunction::SingleThreaded);
+    println!("100 iters, 15_000 size mat");
+    test_mat_mul(100, 15_000, &flu, MatMulFunction::SingleThreaded);
 
     Ok(())
 }

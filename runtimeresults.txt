@@ -1,4 +1,35 @@
-100 runs with n=10000 mat*vec mul
+Iterated outside data loading:
+All in seconds
+100 runs with n=10_000 mat*vec mul
 GPU: 16
 CPU-ST: 468
 
+500 runs with n=5_000 mat*vec mul
+GPU: 19
+CPU-ST: 556
+
+
+time per run
+n=10_000:
+GPU: 0.16
+CPU-ST: 4.68
+
+n=5_000
+GPU: .038
+CPU-ST: 1.112
+
+x linear time, y quadratic time
+GPU
+10_000*x + 10_000^2*y = 0.16
+5_000*x + 5_000^2*y = 0.038
+x ~= 0
+y ~= 1.68*10^(-9)
+
+CPU-ST
+10_000*x + 10_000^2*y = 4.68
+5_000*x + 5_000^2*y = 1.112
+x ~= 0
+y ~= 4.912*10(-8)
+
+
+Iterated inside data loading:
