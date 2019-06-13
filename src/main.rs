@@ -592,7 +592,7 @@ fn test_mat_mul(iters: usize, graph_size: usize, disease: &Disease, mat_mul_fun:
     }
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
-    println!("Ran in {} ms", runtime.as_millis());
+    println!("Ran in {} secs", runtime.as_secs());
     Ok(())
 }
 
