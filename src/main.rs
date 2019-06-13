@@ -611,10 +611,10 @@ fn main() -> io::Result<()> {
     //test_basic_stochastic(&flu, MatMulFunction::GPU)?;
     //test_basic_deterministic(&flu)?;
     println!("GPU test");
-    test_mat_mul(1, 100000, &flu, MatMulFunction::GPU);
+    test_mat_mul(500, 5000, &flu, MatMulFunction::GPU);
 
     println!("CPU single thread test");
-    test_mat_mul(1, 100000, &flu, MatMulFunction::SingleThreaded);
+    test_mat_mul(500, 5000, &flu, MatMulFunction::SingleThreaded);
 
     Ok(())
 }
