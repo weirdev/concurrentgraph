@@ -571,7 +571,7 @@ fn new_sim_graph(n: usize, connectivity: f32, infection: &Disease)  -> Graph {
 }
 
 fn test_basic_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
-    let mut graph = new_sim_graph(1000, 0.3, disease);
+    let mut graph = new_sim_graph(10_000, 0.3, disease);
     let start_time = SystemTime::now();
     //graph.simulate_basic_looped_stochastic(200, &[disease]);
     graph.simulate_basic_mat_stochastic(200, &[disease], mat_mul_fun);
