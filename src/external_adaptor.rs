@@ -90,5 +90,5 @@ pub fn npmmv_gpu_get_out_vector_safe(gpu_allocations: NpmmvGpuAllocations, size:
 }
 
 pub fn npmmv_gpu_compute_safe(gpu_allocations: NpmmvGpuAllocations, outerdim: usize, innerdim: usize) {
-    unsafe { npmmv_gpu_compute_safe(gpu_allocations, outerdim, innerdim) }
+    unsafe { npmmv_gpu_compute(gpu_allocations, outerdim, innerdim) }
 }

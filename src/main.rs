@@ -622,6 +622,21 @@ fn test_mat_mul(iters: isize, graph_size: usize, disease: &Disease, mat_mul_fun:
     Ok(())
 }
 
+fn mat_mul_test1(disease: &Disease) -> io::Result<()> {
+    println!("GPU test");
+    println!("100 iters, 10_000 size mat");
+    test_mat_mul(100, 10_000, &disease, MatMulFunction::GPU)?;
+    println!("100 iters, 15_000 size mat");
+    test_mat_mul(100, 15_000, &disease, MatMulFunction::GPU)?;
+
+    println!("CPU single thread test");
+    println!("100 iters, 10_000 size mat");
+    test_mat_mul(100, 10_000, &disease, MatMulFunction::SingleThreaded);
+    println!("100 iters, 15_000 size mat");
+    test_mat_mul(100, 15_000, &disease, MatMulFunction::SingleThreaded);
+    Ok(())
+}
+
 fn main() -> io::Result<()> {
     let flu = Disease {
         name: "flu",
@@ -633,20 +648,10 @@ fn main() -> io::Result<()> {
         shedding_fun: Box::new(|d| if d > 0 {1.0 / d as f32} else {0.0})
     };
 
-    //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
-    //test_basic_stochastic(&flu, MatMulFunction::GPU)?;
+    test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
+    test_basic_stochastic(&flu, MatMulFunction::GPU)?;
     //test_basic_deterministic(&flu)?;
-    println!("GPU test");
-    println!("100 iters, 10_000 size mat");
-    test_mat_mul(100, 10_000, &flu, MatMulFunction::GPU)?;
-    println!("100 iters, 15_000 size mat");
-    test_mat_mul(100, 15_000, &flu, MatMulFunction::GPU)?;
-
-    println!("CPU single thread test");
-    println!("100 iters, 10_000 size mat");
-    test_mat_mul(100, 10_000, &flu, MatMulFunction::SingleThreaded);
-    println!("100 iters, 15_000 size mat");
-    test_mat_mul(100, 15_000, &flu, MatMulFunction::SingleThreaded);
+    //mat_mul_test1(&flu)?;
 
     Ok(())
 }
