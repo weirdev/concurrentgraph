@@ -1,2 +1,2 @@
 [build]
-rustflags = ["-C", "link-args=-lcuda -lcudart"]
+rustflags = ["-C", "link-args=-lcuda -lcudart -lstdc++ -lm"]
