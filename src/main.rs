@@ -591,6 +591,7 @@ fn main() -> io::Result<()> {
     };
 
     test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
+    test_basic_stochastic(&flu, MatMulFunction::GPU)?;
     //test_basic_deterministic(&flu)?;
 
     Ok(())
