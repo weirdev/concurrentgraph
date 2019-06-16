@@ -1,3 +1,4 @@
+Matrix computation test:
 Iterated outside data loading:
 All in seconds
 100 runs with n=10_000 mat*vec mul
@@ -71,3 +72,16 @@ CPU-ST test
 4.69*10^(-8) / computation
 
 ~62.53x speedup from GPU
+
+Simulation test:
+CPU-ST
+2372 dead
+3060 infected
+Ran in 83 secs
+
+GPU
+2374 dead
+3037 infected
+Ran in 16 secs
+
+~5.188x speedup from GPU
