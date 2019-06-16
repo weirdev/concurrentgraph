@@ -8,9 +8,7 @@ use ndarray::{Array, Array2, Axis};
 use rand::prelude::*;
 use rand::distributions::{Poisson, Gamma};
 
-pub mod external_adaptor;
-
-use external_adaptor::*;
+use concurrentgraph_cuda_sys::*;
 
 #[derive(Clone)]
 #[derive(Copy)]

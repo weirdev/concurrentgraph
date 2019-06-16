@@ -7,10 +7,13 @@ use rand::prelude::*;
 #[macro_use(array)]
 extern crate ndarray;
 
+extern crate concurrentgraph_cuda_sys;
+
+use concurrentgraph_cuda_sys::*;
+
 mod graph;
 
 use graph::*;
-use external_adaptor::*;
 
 fn test_basic_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
     let mut graph = Graph::new_sim_graph(10_000, 0.3, disease, false);
