@@ -48,11 +48,11 @@ pub enum MatMulFunction {
 
 // Compressed sparse row matrix
 pub struct CsrMatrix {
-    rows: usize,
-    columns: usize,
-    cum_row_indexes: Vec<usize>,
-    column_indexes: Vec<usize>,
-    values: Vec<f32>
+    pub rows: usize,
+    pub columns: usize,
+    pub cum_row_indexes: Vec<usize>,
+    pub column_indexes: Vec<usize>,
+    pub values: Vec<f32>
 }
 
 impl CsrMatrix {
@@ -82,11 +82,11 @@ impl CsrMatrix {
         sparse_mat
     }
 
-    pub fn get_ptrs(&mut self) -> CsrMatrixPtrs {
+    pub fn get_ptrs(&self) -> CsrMatrixPtrs {
         CsrMatrixPtrs {
-            cum_row_indexes: self.cum_row_indexes.as_mut_ptr(),
-            column_indexes: self.column_indexes.as_mut_ptr(),
-            values: self.values.as_mut_ptr()
+            cum_row_indexes: self.cum_row_indexes.as_ptr(),
+            column_indexes: self.column_indexes.as_ptr(),
+            values: self.values.as_ptr()
         }
     }
 }
@@ -233,7 +233,7 @@ impl Graph {
         }
     }
 
-    fn new_sparse_from_communities(communities: Vec<Vec<Node>>, intra_community_weight: f32, 
+    pub fn new_sparse_from_communities(communities: Vec<Vec<Node>>, intra_community_weight: f32, 
                                     inter_community_conn_prob: f32, inter_community_weight: f32) -> Graph {
         let total_nodes = communities.iter().fold(0, |n, c| n + c.len());
         let mut s_w = CsrMatrix::new(total_nodes, total_nodes);

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::MutexGuard;
 use rand::prelude::*;
 
 use ndarray::{Array, Array2, Axis};
@@ -7,6 +8,11 @@ use concurrentgraph_cuda_sys::*;
 
 mod graph;
 pub use graph::*;
+
+enum LockedMatrix<'a> {
+    Dense((MutexGuard<'a, Arc<Array2<f32>>>, Option<NpmmvDenseGpuAllocations>)),
+    Sparse((MutexGuard<'a, Arc<CsrMatrix>>, Option<NpmmvCsrGpuAllocations>))
+}
 
 pub fn simulate_basic_looped_stochastic(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
     let mat = match &graph.weights {
@@ -74,20 +80,32 @@ pub fn simulate_basic_looped_stochastic(graph: &mut Graph, steps: usize, disease
 }
 
 pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: &[&Disease], mat_mul_func: MatMulFunction) {
-    let mat = match &graph.weights {
-        Matrix::Dense(m) => m.lock().unwrap(),
-        Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
-    };
-
-    let mut gpu_allocations: Option<NpmmvDenseGpuAllocations> = None;
-    match mat_mul_func {
-        MatMulFunction::GPU => {
-            let ga = npmmv_dense_gpu_allocate_safe(mat.shape()[0], mat.shape()[1]);
-            npmmv_gpu_set_dense_matrix_safe(&mat, ga);
-            gpu_allocations = Some(ga);
+    let mat = match &mut graph.weights {
+        Matrix::Dense(m) => {
+            let lmat = m.lock().unwrap();
+            let gpualloc = match mat_mul_func {
+                MatMulFunction::GPU => {
+                    let ga = npmmv_dense_gpu_allocate_safe(lmat.shape()[0], lmat.shape()[1]);
+                    npmmv_gpu_set_dense_matrix_safe(&lmat, ga);
+                    Some(ga)
+                },
+                _ => None
+            };
+            LockedMatrix::Dense((lmat, gpualloc))
         },
-        _ => ()
-    }
+        Matrix::Sparse(sm) => {
+            let lmat = sm.lock().unwrap();
+            let gpualloc = match mat_mul_func {
+                MatMulFunction::GPU => {
+                    let ga = npmmv_csr_gpu_allocate_safe(lmat.rows, lmat.columns, lmat.values.len());
+                    npmmv_gpu_set_csr_matrix_safe(lmat.get_ptrs(), ga, lmat.rows, lmat.values.len());
+                    Some(ga)
+                },
+                _ => None
+            };
+            LockedMatrix::Sparse((lmat, gpualloc))
+        }
+    };
 
     for ts in 0..steps {
         let node_transmitivity: Vec<f32> = graph.nodes.iter().map(|n| match n.status {
@@ -101,21 +119,35 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
 
         let nodetrans_copy = node_transmitivity.clone();
         let pr_no_infections = match mat_mul_func {
-            MatMulFunction::SingleThreaded => negative_prob_multiply_dense_matrix_vector_cpu_safe(1, mat.clone(), nodetrans_copy).unwrap(),
-            MatMulFunction::MultiThreaded => generic_mat_vec_mult_multi_thread(mat.clone(), nodetrans_copy, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap(),
+            MatMulFunction::SingleThreaded => match mat {
+                LockedMatrix::Dense(ref mga) => negative_prob_multiply_dense_matrix_vector_cpu_safe(1, mga.0.clone(), nodetrans_copy).unwrap(),
+                LockedMatrix::Sparse(_) => panic!("Sparse matrices not implemented for CPU simulations")
+            },
+            MatMulFunction::MultiThreaded => match mat {
+                LockedMatrix::Dense(ref mga) => generic_mat_vec_mult_multi_thread(mga.0.clone(), nodetrans_copy, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap(),
+                LockedMatrix::Sparse(_) => panic!("Sparse matrices not implemented for CPU simulations")
+            },
             MatMulFunction::GPU => {
-                match gpu_allocations {
-                    Some(ga) => {
-                        npmmv_gpu_set_in_vector_safe(nodetrans_copy, ga);
-                        npmmv_dense_gpu_compute_safe(ga, mat.shape()[0], mat.shape()[1]);
-                        npmmv_gpu_get_out_vector_safe(ga, mat.shape()[1])
+                match mat {
+                    LockedMatrix::Dense(ref mga) => match mga.1 {
+                        Some(ga) => {
+                            npmmv_gpu_set_in_vector_safe(nodetrans_copy, GpuAllocations::Dense(ga));
+                            npmmv_dense_gpu_compute_safe(ga, mga.0.shape()[0], mga.0.shape()[1]);
+                            npmmv_gpu_get_out_vector_safe(GpuAllocations::Dense(ga), mga.0.shape()[1])
+                        },
+                        None => panic!("GPU should be allocated at this point")
                     },
-                    None => panic!("Should never reach here")
+                    LockedMatrix::Sparse(ref smga) => match smga.1 {
+                        Some(ga) => {
+                            npmmv_gpu_set_in_vector_safe(nodetrans_copy, GpuAllocations::Sparse(ga));
+                            npmmv_csr_gpu_compute_safe(ga, smga.0.rows);
+                            npmmv_gpu_get_out_vector_safe(GpuAllocations::Sparse(ga), smga.0.rows)
+                        },
+                        None => panic!("GPU should be allocated at this point")
+                    } 
                 }
             }
         };
-
-        //println!("t: {}, n_infection_prs: {:?}", t, log_pr_infections.iter().map(|l| (2.0 as f32).powf(*l)).collect::<Vec<f32>>());
 
         graph.nodes = graph.nodes.iter().zip(pr_no_infections).map(|(n, nipr)| match n.status {
             AgentStatus::Asymptomatic => {
@@ -155,9 +187,15 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
         //println!("T{}: {} dead, {} infected", ts, self.dead_count(), self.infected_count(0));
     }
 
-    match gpu_allocations {
-        Some(ga) => npmmv_dense_gpu_free_safe(ga),
-        None => ()
+    match mat {
+        LockedMatrix::Dense(mga) => match mga.1 {
+            Some(ga) => npmmv_dense_gpu_free_safe(ga),
+            None => ()
+        },
+        LockedMatrix::Sparse(smga) => match smga.1 {
+            Some(ga) => npmmv_csr_gpu_free_safe(ga),
+            None => ()
+        }     
     }
 }
 
