@@ -117,21 +117,21 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
             AgentStatus::Dead => 0.0
         }).collect();
 
-        let nodetrans_copy = node_transmitivity.clone();
+        println!("comp start");
         let pr_no_infections = match mat_mul_func {
             MatMulFunction::SingleThreaded => match mat {
-                LockedMatrix::Dense(ref mga) => negative_prob_multiply_dense_matrix_vector_cpu_safe(1, mga.0.clone(), nodetrans_copy).unwrap(),
+                LockedMatrix::Dense(ref mga) => negative_prob_multiply_dense_matrix_vector_cpu_safe(1, mga.0.clone(), node_transmitivity).unwrap(),
                 LockedMatrix::Sparse(_) => panic!("Sparse matrices not implemented for CPU simulations")
             },
             MatMulFunction::MultiThreaded => match mat {
-                LockedMatrix::Dense(ref mga) => generic_mat_vec_mult_multi_thread(mga.0.clone(), nodetrans_copy, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap(),
+                LockedMatrix::Dense(ref mga) => generic_mat_vec_mult_multi_thread(mga.0.clone(), node_transmitivity, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap(),
                 LockedMatrix::Sparse(_) => panic!("Sparse matrices not implemented for CPU simulations")
             },
             MatMulFunction::GPU => {
                 match mat {
                     LockedMatrix::Dense(ref mga) => match mga.1 {
                         Some(ga) => {
-                            npmmv_gpu_set_in_vector_safe(nodetrans_copy, GpuAllocations::Dense(ga));
+                            npmmv_gpu_set_in_vector_safe(node_transmitivity, GpuAllocations::Dense(ga));
                             npmmv_dense_gpu_compute_safe(ga, mga.0.shape()[0], mga.0.shape()[1]);
                             npmmv_gpu_get_out_vector_safe(GpuAllocations::Dense(ga), mga.0.shape()[1])
                         },
@@ -139,7 +139,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
                     },
                     LockedMatrix::Sparse(ref smga) => match smga.1 {
                         Some(ga) => {
-                            npmmv_gpu_set_in_vector_safe(nodetrans_copy, GpuAllocations::Sparse(ga));
+                            npmmv_gpu_set_in_vector_safe(node_transmitivity, GpuAllocations::Sparse(ga));
                             npmmv_csr_gpu_compute_safe(ga, smga.0.rows);
                             npmmv_gpu_get_out_vector_safe(GpuAllocations::Sparse(ga), smga.0.rows)
                         },
@@ -148,7 +148,10 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
                 }
             }
         };
+        println!("comp end");
 
+        let mut dead = 0;
+        let mut infected = 0;
         graph.nodes = graph.nodes.iter().zip(pr_no_infections).map(|(n, nipr)| match n.status {
             AgentStatus::Asymptomatic => {
                 let mut died = false;
@@ -156,16 +159,21 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
                     InfectionStatus::Infected(1) => 
                         if random::<f32>() < diseases[0].mortality_rate {
                             died = true;
+                            infected += 1;
                             InfectionStatus::Infected(0)
                         } else {
                             InfectionStatus::NotInfected(diseases[0].post_infection_immunity)
                         },
-                    InfectionStatus::Infected(t) => InfectionStatus::Infected(t-1),
+                    InfectionStatus::Infected(t) => {
+                        infected += 1;
+                        InfectionStatus::Infected(t-1)
+                    },
                     InfectionStatus::NotInfected(immunity) => {
                         //println!("ilpr: {}, imm: {}", nipr, immunity);
                         // TODO: Modify weight matrix to reflect immunity
                         if random::<f32>() < (1.0 - nipr) * (1.0 - immunity) {
                             //println!("inf");
+                            infected += 1;
                             InfectionStatus::Infected(diseases[0].infection_length)
                         } else {
                             //println!("no inf");
@@ -175,6 +183,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
                 };
                 Node {
                     status: if died {
+                                dead += 1;
                                 AgentStatus::Dead
                             } else {
                                 AgentStatus::Asymptomatic
@@ -184,7 +193,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
             },
             AgentStatus::Dead => n.clone()
         }).collect();
-        //println!("T{}: {} dead, {} infected", ts, self.dead_count(), self.infected_count(0));
+        println!("T{}: {} dead, {} infected", ts, dead, infected);
     }
 
     match mat {
