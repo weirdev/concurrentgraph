@@ -8,6 +8,8 @@ use ndarray::{Array, Array2, Axis};
 use rand::prelude::*;
 use rand::distributions::{Poisson, Gamma};
 
+use concurrentgraph_cuda_sys::CsrMatrixPtrs;
+
 #[derive(Clone)]
 #[derive(Copy)]
 #[derive(Debug)]
@@ -44,9 +46,54 @@ pub enum MatMulFunction {
     GPU
 }
 
+// Compressed sparse row matrix
+pub struct CsrMatrix {
+    rows: usize,
+    columns: usize,
+    cum_row_indexes: Vec<usize>,
+    column_indexes: Vec<usize>,
+    values: Vec<f32>
+}
+
+impl CsrMatrix {
+    pub fn new(rows: usize, columns: usize) -> CsrMatrix {
+        CsrMatrix {
+            rows: rows,
+            columns: columns,
+            cum_row_indexes: Vec::new(),
+            column_indexes: Vec::new(),
+            values: Vec::new()
+        }
+    }
+
+    pub fn from_dense(mat: &Array2<f32>) -> CsrMatrix {
+        let mut sparse_mat = CsrMatrix::new(mat.shape()[0], mat.shape()[1]);
+        for i in 0..mat.shape()[0] {
+            sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
+            for j in 0..mat.shape()[1] {
+                if mat[(i, j)] <= 0.0 {
+                    sparse_mat.column_indexes.push(j);
+                    sparse_mat.values.push(mat[(i, j)])
+                }
+            }
+        }
+        sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
+
+        sparse_mat
+    }
+
+    pub fn get_ptrs(&mut self) -> CsrMatrixPtrs {
+        CsrMatrixPtrs {
+            cum_row_indexes: self.cum_row_indexes.as_mut_ptr(),
+            column_indexes: self.column_indexes.as_mut_ptr(),
+            values: self.values.as_mut_ptr()
+        }
+    }
+}
+
 pub enum Matrix {
     Dense(Mutex<Arc<Array2<f32>>>),
-    Sparse(Mutex<Arc<Vec<f32>>>)
+    Sparse(Mutex<Arc<CsrMatrix>>)
 }
 
 pub struct Disease<'a> {
@@ -183,6 +230,37 @@ impl Graph {
                 infections: Vec::new()
             }; n],
             weights: Matrix::Dense(Mutex::new(Arc::new(Array2::from_elem((n, n), 1.0))))
+        }
+    }
+
+    fn new_sparse_from_communities(communities: Vec<Vec<Node>>, intra_community_weight: f32, 
+                                    inter_community_conn_prob: f32, inter_community_weight: f32) -> Graph {
+        let total_nodes = communities.iter().fold(0, |n, c| n + c.len());
+        let mut s_w = CsrMatrix::new(total_nodes, total_nodes);
+        
+        let mut cur_comm = 0;
+        let mut comm_start = 0;
+        for i in 0..total_nodes {
+            s_w.cum_row_indexes.push(s_w.values.len());
+            if i - comm_start >= communities[cur_comm].len() {
+                comm_start = i;
+                cur_comm += 1;
+            }
+            for j in 0..total_nodes {
+                if j >= comm_start && j < comm_start + communities[cur_comm].len() {
+                    s_w.values.push(intra_community_weight);
+                    s_w.column_indexes.push(j)
+                } else if random::<f32>() < inter_community_conn_prob {
+                    s_w.values.push(inter_community_weight);
+                    s_w.column_indexes.push(j);
+                }
+            }
+        }
+        s_w.cum_row_indexes.push(s_w.values.len());
+
+        Graph {
+            nodes: communities.into_iter().flatten().collect(),
+            weights: Matrix::Sparse(Mutex::new(Arc::new(s_w)))
         }
     }
 

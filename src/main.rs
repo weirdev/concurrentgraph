@@ -63,8 +63,8 @@ fn test_mat_mul(iters: isize, graph_size: usize, disease: &Disease, mat_mul_fun:
     
     match mat_mul_fun {
         MatMulFunction::MultiThreaded => generic_mat_vec_mult_multi_thread(mat.clone(), vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0),
-        MatMulFunction::SingleThreaded => negative_prob_multiply_matrix_vector_cpu_safe(iters, mat.clone(), vector.clone()),
-        MatMulFunction::GPU => negative_prob_multiply_matrix_vector_gpu_safe(iters, mat.clone(), vector.clone())
+        MatMulFunction::SingleThreaded => negative_prob_multiply_dense_matrix_vector_cpu_safe(iters, mat.clone(), vector.clone()),
+        MatMulFunction::GPU => negative_prob_multiply_dense_matrix_vector_gpu_safe(iters, mat.clone(), vector.clone())
     }.expect("Run failed");
 
     let runtime = SystemTime::now().duration_since(start_time)

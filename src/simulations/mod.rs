@@ -79,11 +79,11 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
         Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
     };
 
-    let mut gpu_allocations: Option<NpmmvGpuAllocations> = None;
+    let mut gpu_allocations: Option<NpmmvDenseGpuAllocations> = None;
     match mat_mul_func {
         MatMulFunction::GPU => {
-            let ga = npmmv_gpu_allocate_safe(mat.shape()[0], mat.shape()[1]);
-            npmmv_gpu_set_matrix_safe(&mat, ga);
+            let ga = npmmv_dense_gpu_allocate_safe(mat.shape()[0], mat.shape()[1]);
+            npmmv_gpu_set_dense_matrix_safe(&mat, ga);
             gpu_allocations = Some(ga);
         },
         _ => ()
@@ -101,13 +101,13 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
 
         let nodetrans_copy = node_transmitivity.clone();
         let pr_no_infections = match mat_mul_func {
-            MatMulFunction::SingleThreaded => negative_prob_multiply_matrix_vector_cpu_safe(1, mat.clone(), nodetrans_copy).unwrap(),
+            MatMulFunction::SingleThreaded => negative_prob_multiply_dense_matrix_vector_cpu_safe(1, mat.clone(), nodetrans_copy).unwrap(),
             MatMulFunction::MultiThreaded => generic_mat_vec_mult_multi_thread(mat.clone(), nodetrans_copy, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap(),
             MatMulFunction::GPU => {
                 match gpu_allocations {
                     Some(ga) => {
                         npmmv_gpu_set_in_vector_safe(nodetrans_copy, ga);
-                        npmmv_gpu_compute_safe(ga, mat.shape()[0], mat.shape()[1]);
+                        npmmv_dense_gpu_compute_safe(ga, mat.shape()[0], mat.shape()[1]);
                         npmmv_gpu_get_out_vector_safe(ga, mat.shape()[1])
                     },
                     None => panic!("Should never reach here")
@@ -156,7 +156,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
     }
 
     match gpu_allocations {
-        Some(ga) => npmmv_gpu_free_safe(ga),
+        Some(ga) => npmmv_dense_gpu_free_safe(ga),
         None => ()
     }
 }
