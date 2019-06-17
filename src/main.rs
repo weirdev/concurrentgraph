@@ -30,7 +30,7 @@ fn test_basic_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction) -> io::
 
 fn test_sparse_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
     let community: Vec<Node> = (0..100).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
-    let communities: Vec<Vec<Node>> = (0..1000).map(|_| community.clone()).collect();
+    let communities: Vec<Vec<Node>> = (0..100).map(|_| community.clone()).collect();
     let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.001, 0.1);
     graph.nodes[0].infections = vec![InfectionStatus::Infected(disease.infection_length)];
     let start_time = SystemTime::now();
