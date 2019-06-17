@@ -35,7 +35,11 @@ fn test_sparse_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction) -> io:
     let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.001, 0.1);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
-    println!("Generated graph in {} secs", runtime.as_secs());
+    match &graph.weights {
+        Matrix::Sparse(mat) => println!("Generated {} val sparse graph in {} secs", mat.lock().unwrap().values.len(), runtime.as_secs()),
+        _ => ()
+    }
+    
 
     graph.nodes[0].infections = vec![InfectionStatus::Infected(disease.infection_length)];
     let start_time = SystemTime::now();
