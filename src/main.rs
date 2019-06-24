@@ -150,7 +150,7 @@ fn mat_mul_test1(disease: &Disease) -> io::Result<()> {
 
 /// Verify that sparse multiplication and dense multiplication reach the same result
 fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
-    let graph_size = 100_000;
+    let graph_size = 10_000;
     let mut graph = Graph::new_sim_graph(graph_size, 0.3, disease, false);
 
     let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
@@ -174,6 +174,7 @@ fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
             panic!("Result mismatch at {}, dense: {} sparse: {}", i, dense_result[i], sparse_result[i]);
         }
     }
+    println!("item 39 in result: {}", dense_result[39]);
     Ok(())
 }
 
