@@ -153,7 +153,9 @@ fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
     let graph_size = 10_000;
     let mut graph = Graph::new_sim_graph(graph_size, 0.3, disease, false);
 
-    let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
+    //let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
+    let mut vector: Vec<f32> = (0..graph_size).map(|_| 0.0).collect();
+    vector[40] = 0.9;
     let dense_result = test_mat_mul(1, &graph, vector.clone(), MatMulFunction::GPU)?;
 
     let sp_mat;
@@ -175,6 +177,7 @@ fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
         }
     }
     println!("item 39 in result: {}", dense_result[39]);
+    println!("item 40 in result: {}", dense_result[40]);
     Ok(())
 }
 
