@@ -1,6 +1,7 @@
 use std::io;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::f32::EPSILON;
 
 use rand::prelude::*;
 
@@ -76,41 +77,102 @@ fn test_basic_deterministic(disease: &Disease) -> io::Result<()> {
     Ok(())
 }
 
-fn test_mat_mul(iters: isize, graph_size: usize, disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
-    let graph = Graph::new_sim_graph(graph_size, 0.3, disease, false);
+fn random_mat_mul(iters: isize, graph_size: usize, disease: &Disease, mat_mul_fun: MatMulFunction, sparse: bool) -> io::Result<Vec<f32>> {
+    let mut graph = Graph::new_sim_graph(graph_size, 0.3, disease, false);
+    let mat;
+    {
+        let w = match &graph.weights {
+            Matrix::Dense(ref m) => m,
+            _ => panic!("Graph must be dense here")
+        };
+        if sparse {
+            mat = Matrix::Sparse(Mutex::new(Arc::new(CsrMatrix::from_dense(w.lock().unwrap().clone()))));
+        } else {
+            mat = graph.weights;
+        }
+    }
+    graph.weights = mat;
     let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
-    
-    let mut mat = match graph.weights {
-        Matrix::Dense(m) => m.lock().unwrap().clone(),
-        Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
-    };
-    
+    test_mat_mul(iters, &graph, vector, mat_mul_fun)
+}
+
+fn test_mat_mul(iters: isize, graph: &Graph, vector: Vec<f32>, mat_mul_fun: MatMulFunction) -> io::Result<Vec<f32>> {
     let start_time = SystemTime::now();
     
-    match mat_mul_fun {
-        MatMulFunction::MultiThreaded => generic_mat_vec_mult_multi_thread(mat.clone(), vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0),
-        MatMulFunction::SingleThreaded => negative_prob_multiply_dense_matrix_vector_cpu_safe(iters, mat.clone(), vector.clone()),
-        MatMulFunction::GPU => negative_prob_multiply_dense_matrix_vector_gpu_safe(iters, mat.clone(), vector.clone())
-    }.expect("Run failed");
+    let result = match &graph.weights {
+        Matrix::Dense(m) => {
+            let mat = m.lock().unwrap().clone();
+            match mat_mul_fun {
+                MatMulFunction::MultiThreaded => generic_mat_vec_mult_multi_thread(mat, vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).expect("Run failed"), // TODO: this doesnt support computation iteration
+                MatMulFunction::SingleThreaded => negative_prob_multiply_dense_matrix_vector_cpu_safe(iters, mat, vector.clone()).expect("Run failed"),
+                MatMulFunction::GPU => negative_prob_multiply_dense_matrix_vector_gpu_safe(iters, mat, vector.clone()).expect("Run failed")
+            }
+        },
+        Matrix::Sparse(sm) => {
+            let sp_mat = sm.lock().unwrap().clone();
+            match mat_mul_fun {
+                MatMulFunction::GPU => {
+                    let gpu_alloc = npmmv_csr_gpu_allocate_safe(sp_mat.rows, sp_mat.columns, sp_mat.values.len());
+                    npmmv_gpu_set_csr_matrix_safe(sp_mat.get_ptrs(), gpu_alloc, sp_mat.rows, sp_mat.values.len());
+                    npmmv_gpu_set_in_vector_safe(vector, GpuAllocations::Sparse(gpu_alloc));
+                    for _ in 0..iters {
+                        npmmv_csr_gpu_compute_safe(gpu_alloc, sp_mat.rows);
+                    }
+                    let res = npmmv_gpu_get_out_vector_safe(GpuAllocations::Sparse(gpu_alloc), sp_mat.rows);
+                    npmmv_csr_gpu_free_safe(gpu_alloc);
+                    res
+                },
+                _ => panic!("Sparse matrices not implemented on CPU yet")
+            }
+        }
+    };
 
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     println!("Ran in {} secs", runtime.as_secs());
-    Ok(())
+    Ok(result)
 }
 
 fn mat_mul_test1(disease: &Disease) -> io::Result<()> {
     println!("GPU test");
     println!("100 iters, 10_000 size mat");
-    test_mat_mul(100, 10_000, &disease, MatMulFunction::GPU)?;
+    random_mat_mul(100, 10_000, &disease, MatMulFunction::GPU, false)?;
     println!("100 iters, 15_000 size mat");
-    test_mat_mul(100, 15_000, &disease, MatMulFunction::GPU)?;
+    random_mat_mul(100, 15_000, &disease, MatMulFunction::GPU, false)?;
 
     println!("CPU single thread test");
     println!("100 iters, 10_000 size mat");
-    test_mat_mul(100, 10_000, &disease, MatMulFunction::SingleThreaded)?;
+    random_mat_mul(100, 10_000, &disease, MatMulFunction::SingleThreaded, false)?;
     println!("100 iters, 15_000 size mat");
-    test_mat_mul(100, 15_000, &disease, MatMulFunction::SingleThreaded)?;
+    random_mat_mul(100, 15_000, &disease, MatMulFunction::SingleThreaded, false)?;
+    Ok(())
+}
+
+/// Verify that sparse multiplication and dense multiplication reach the same result
+fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
+    let mut graph = Graph::new_sim_graph(100, 0.3, disease, false);
+
+    let vector: Vec<f32> = (0..100).map(|_| random::<f32>()).collect();
+    let dense_result = test_mat_mul(1, &graph, vector.clone(), MatMulFunction::GPU)?;
+
+    let sp_mat;
+    {
+        let w = match &graph.weights {
+            Matrix::Dense(ref m) => m,
+            _ => panic!("Graph must be dense here")
+        }.lock().unwrap();
+
+        sp_mat = Matrix::Sparse(Mutex::new(Arc::new(CsrMatrix::from_dense(w.clone()))));
+    }
+    graph.weights = sp_mat;
+
+    let sparse_result = test_mat_mul(1, &graph, vector.clone(), MatMulFunction::GPU)?;
+
+    for i in 0..dense_result.len() {
+        if dense_result[i] - sparse_result[i] > EPSILON*100.0 {
+            panic!("Result mismatch at {}, dense: {} sparse: {}", i, dense_result[i], sparse_result[i]);
+        }
+    }
     Ok(())
 }
 
@@ -127,10 +189,11 @@ fn main() -> io::Result<()> {
 
     //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
     //test_basic_stochastic(&flu, MatMulFunction::GPU)?;
-    test_sparse_stochastic(&flu, MatMulFunction::GPU)?;
+    //test_sparse_stochastic(&flu, MatMulFunction::GPU)?;
 
     //test_basic_deterministic(&flu)?;
     //mat_mul_test1(&flu)?;
+    mat_mul_test2(&flu)?;
 
     Ok(())
 }

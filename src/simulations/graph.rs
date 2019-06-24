@@ -66,7 +66,7 @@ impl CsrMatrix {
         }
     }
 
-    pub fn from_dense(mat: &Array2<f32>) -> CsrMatrix {
+    pub fn from_dense(mat: Arc<Array2<f32>>) -> CsrMatrix {
         let mut sparse_mat = CsrMatrix::new(mat.shape()[0], mat.shape()[1]);
         for i in 0..mat.shape()[0] {
             sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
@@ -80,6 +80,16 @@ impl CsrMatrix {
         sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
 
         sparse_mat
+    }
+
+    pub fn to_dense(&self) -> Array2<f32> {
+        let mut mat = Array2::zeros((self.rows, self.columns));
+        for i in 0..(self.cum_row_indexes.len() - 1) {
+            for j in self.cum_row_indexes[i]..self.cum_row_indexes[i+1] {
+                mat[(i, self.column_indexes[j])] = self.values[j];
+            }
+        }
+        mat
     }
 
     pub fn get_ptrs(&self) -> CsrMatrixPtrs {

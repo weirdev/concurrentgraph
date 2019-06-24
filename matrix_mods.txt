@@ -1,0 +1,35 @@
+Modifications to matrix during computation:
+    Day-night shift:
+        Timestep is an entire day:
+            Matrix weights dont change. The upper left quadrant represents the day shift, the lower right quadrant represents the night shift. The other two quadrants have lower weights and are even more sparse.
+        Timestep less than a day:
+            We compute simulation on just upper left quadrant until shift change. Then we compute the simulation over the entire matrix to represent shift change. During night shift we only compute the lower right quadrant. Significantly faster, especially if we are using relatively small timesteps.
+
+    Quarantine:
+        Simplest method:
+            We "replace" the sick worker with a healthy worker. The node suddenly becomes healthy and prone to infection, and weights are totally unchanged. (We could make minor random perturbations, but this shouldn't seriously affect the runtime.)
+        More complex:
+            To simulate no longer working, we want the majority of the node's contacts to drop out but not the contacts representing family, personal doctor, etc. We maintain the swap in method from before, but we zero in-place the family contacts of the replacement worker. The quarantined worker is added as a new row at the end of the matrix, containing only her family contacts. 
+
+"Discrete" algo:
+    Baseline:
+        0. Start with contact graph and a single infected node (pat0).
+        1. Flip coin for all neighbors of pat0, Pr=contact*shedding $$ O(n)
+        2. If HEADS, set infection O(1)
+        3. Flip coins for all neighbors of all infected nodes $$ O(n^2)
+        4. For all HEADS, set infections $$ O(n)
+        5. GOTO step 3.
+
+    With fast-fowarded steps:
+        0. Start with contact graph and a single infected node (pat0).
+        1. Calculate days to infection for all neighbors of pat0, for duration of pat0's infection, set these weights as pat0's column in a new matrix $$ O(n)
+        2. Repeat 1 for all nodes.
+        3. BFS the new matrix
+
+        Benefits:
+            Possible to efficiently map extent of spread of a new infection
+        Issues:
+            No dynamic quarantine
+            No reinfection
+            The new matrix created 
+        
