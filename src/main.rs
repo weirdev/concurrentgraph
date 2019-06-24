@@ -150,9 +150,10 @@ fn mat_mul_test1(disease: &Disease) -> io::Result<()> {
 
 /// Verify that sparse multiplication and dense multiplication reach the same result
 fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
-    let mut graph = Graph::new_sim_graph(100, 0.3, disease, false);
+    let graph_size = 10_000;
+    let mut graph = Graph::new_sim_graph(graph_size, 0.3, disease, false);
 
-    let vector: Vec<f32> = (0..100).map(|_| random::<f32>()).collect();
+    let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
     let dense_result = test_mat_mul(1, &graph, vector.clone(), MatMulFunction::GPU)?;
 
     let sp_mat;
