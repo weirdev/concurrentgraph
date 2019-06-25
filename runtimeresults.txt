@@ -85,3 +85,17 @@ GPU
 Ran in 16 secs
 
 ~5.188x speedup from GPU
+
+GPU restriction test:
+1_000 nodes, 100_000 iterations
+GPU restriction factor = 1
+Ran in 27 secs
+GPU restriction factor = 2
+Ran in 29 secs
+GPU restriction factor = 3
+Ran in 27 secs
+GPU restriction factor = 4
+Ran in 30 secs
+(I believe that the issue here may be that computation is so fast that the 100_000 functin calls are taking up a signification portion of the test runtime)
+
+

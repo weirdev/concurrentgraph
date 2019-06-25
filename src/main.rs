@@ -208,15 +208,15 @@ fn main() -> io::Result<()> {
     //mat_mul_test1(&flu)?;
     //mat_mul_test2(&flu)?;
 
-    println!("1_000 nodes, 100_000 iterations");
+    println!("10_000 nodes, 1_000 iterations");
     println!("GPU restriction factor = 1");
-    mat_mul_test3(&flu, 1_000, 100_000, 1)?;
+    mat_mul_test3(&flu, 10_000, 1_000, 1)?;
     println!("GPU restriction factor = 2");
-    mat_mul_test3(&flu, 1_000, 100_000, 2)?;
+    mat_mul_test3(&flu, 10_000, 1_000, 2)?;
     println!("GPU restriction factor = 3");
-    mat_mul_test3(&flu, 1_000, 100_000, 3)?;
+    mat_mul_test3(&flu, 10_000, 1_000, 3)?;
     println!("GPU restriction factor = 4");
-    mat_mul_test3(&flu, 1_000, 100_000, 4)?;
+    mat_mul_test3(&flu, 10_000, 1_000, 4)?;
 
     Ok(())
 }
