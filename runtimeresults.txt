@@ -108,3 +108,21 @@ GPU restriction factor = 3
 Ran in 1006 secs
 GPU restriction factor = 4
 Ran in 1297 secs
+
+30_000 nodes, 100 iterations
+GPU restriction factor = 1
+Ran in 1163 secs
+GPU restriction factor = 2
+Ran in 3181 secs
+GPU restriction factor = 3
+Ran in 3598 secs
+GPU restriction factor = 4
+Ran in 3782 secs
+
+100_000 nodes, 10 iterations
+GPU restriction factor = 1
+Ran in 5205 secs
+GPU restriction factor = 2
+Ran in 13909 secs
+GPU restriction factor = 3
+(job not finished)

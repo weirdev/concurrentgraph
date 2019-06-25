@@ -181,8 +181,8 @@ fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
     Ok(())
 }
 
-fn mat_mul_test3(disease: &Disease, size: usize, iters: usize, gpu_restriction_factor: usize) -> io::Result<()> {
-    let mat = Matrix::Sparse(Mutex::new(Arc::new(CsrMatrix::new_with_conn_prob(size, size, 0.01))));
+fn mat_mul_test3(disease: &Disease, size: usize, iters: usize, gpu_restriction_factor: usize, sparsity: f32) -> io::Result<()> {
+    let mat = Matrix::Sparse(Mutex::new(Arc::new(CsrMatrix::new_with_conn_prob(size, size, sparsity))));
     let vector: Vec<f32> = (0..size).map(|_| random::<f32>()).collect();
     test_mat_mul(iters, &mat, vector.clone(), MatMulFunction::GPU, gpu_restriction_factor)?;
 
@@ -208,25 +208,74 @@ fn main() -> io::Result<()> {
     //mat_mul_test1(&flu)?;
     //mat_mul_test2(&flu)?;
 
+    println!("Sparsity factor 0.01");
+    println!("100_000 nodes, 3 iterations");
+    println!("GPU restriction factor = 3");
+    mat_mul_test3(&flu, 100_000, 3, 3, 0.01)?;
+    println!("GPU restriction factor = 4");
+    mat_mul_test3(&flu, 100_000, 3, 4, 0.01)?;
+
+    println!("Sparsity factor 0.001");
+    println!("10_000 nodes, 1000 iterations");
+    println!("GPU restriction factor = 1");
+    mat_mul_test3(&flu, 30_000, 1000, 1, 0.001)?;
+    println!("GPU restriction factor = 2");
+    mat_mul_test3(&flu, 30_000, 1000, 2, 0.001)?;
+    println!("GPU restriction factor = 3");
+    mat_mul_test3(&flu, 30_000, 1000, 3, 0.001)?;
+    println!("GPU restriction factor = 4");
+    mat_mul_test3(&flu, 30_000, 1000, 4, 0.001)?;
+
     println!("30_000 nodes, 100 iterations");
     println!("GPU restriction factor = 1");
-    mat_mul_test3(&flu, 30_000, 100, 1)?;
+    mat_mul_test3(&flu, 30_000, 100, 1, 0.001)?;
     println!("GPU restriction factor = 2");
-    mat_mul_test3(&flu, 30_000, 100, 2)?;
+    mat_mul_test3(&flu, 30_000, 100, 2, 0.001)?;
     println!("GPU restriction factor = 3");
-    mat_mul_test3(&flu, 30_000, 100, 3)?;
+    mat_mul_test3(&flu, 30_000, 100, 3, 0.001)?;
     println!("GPU restriction factor = 4");
-    mat_mul_test3(&flu, 30_000, 100, 4)?;
+    mat_mul_test3(&flu, 30_000, 100, 4, 0.001)?;
 
     println!("100_000 nodes, 10 iterations");
     println!("GPU restriction factor = 1");
-    mat_mul_test3(&flu, 100_000, 10, 1)?;
+    mat_mul_test3(&flu, 100_000, 10, 1, 0.001)?;
     println!("GPU restriction factor = 2");
-    mat_mul_test3(&flu, 100_000, 10, 2)?;
+    mat_mul_test3(&flu, 100_000, 10, 1, 0.001)?;
     println!("GPU restriction factor = 3");
-    mat_mul_test3(&flu, 100_000, 10, 3)?;
+    mat_mul_test3(&flu, 100_000, 10, 3, 0.001)?;
     println!("GPU restriction factor = 4");
-    mat_mul_test3(&flu, 100_000, 10, 4)?;
+    mat_mul_test3(&flu, 100_000, 10, 4, 0.001)?;
+
+    println!("Sparsity factor 0.0001");
+    println!("10_000 nodes, 1000 iterations");
+    println!("GPU restriction factor = 1");
+    mat_mul_test3(&flu, 30_000, 1000, 1, 0.0001)?;
+    println!("GPU restriction factor = 2");
+    mat_mul_test3(&flu, 30_000, 1000, 2, 0.0001)?;
+    println!("GPU restriction factor = 3");
+    mat_mul_test3(&flu, 30_000, 1000, 3, 0.0001)?;
+    println!("GPU restriction factor = 4");
+    mat_mul_test3(&flu, 30_000, 1000, 4, 0.0001)?;
+
+    println!("30_000 nodes, 100 iterations");
+    println!("GPU restriction factor = 1");
+    mat_mul_test3(&flu, 30_000, 100, 1, 0.0001)?;
+    println!("GPU restriction factor = 2");
+    mat_mul_test3(&flu, 30_000, 100, 2, 0.0001)?;
+    println!("GPU restriction factor = 3");
+    mat_mul_test3(&flu, 30_000, 100, 3, 0.0001)?;
+    println!("GPU restriction factor = 4");
+    mat_mul_test3(&flu, 30_000, 100, 4, 0.0001)?;
+
+    println!("100_000 nodes, 10 iterations");
+    println!("GPU restriction factor = 1");
+    mat_mul_test3(&flu, 100_000, 10, 1, 0.0001)?;
+    println!("GPU restriction factor = 2");
+    mat_mul_test3(&flu, 100_000, 10, 1, 0.0001)?;
+    println!("GPU restriction factor = 3");
+    mat_mul_test3(&flu, 100_000, 10, 3, 0.0001)?;
+    println!("GPU restriction factor = 4");
+    mat_mul_test3(&flu, 100_000, 10, 4, 0.0001)?;
 
     Ok(())
 }
