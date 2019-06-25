@@ -77,7 +77,7 @@ fn test_basic_deterministic(disease: &Disease) -> io::Result<()> {
     Ok(())
 }
 
-fn random_mat_mul(iters: isize, graph_size: usize, disease: &Disease, mat_mul_fun: MatMulFunction, sparse: bool) -> io::Result<Vec<f32>> {
+fn random_mat_mul(iters: usize, graph_size: usize, disease: &Disease, mat_mul_fun: MatMulFunction, sparse: bool) -> io::Result<Vec<f32>> {
     let mut graph = Graph::new_sim_graph(graph_size, 0.3, disease, false);
     let mat;
     {
@@ -93,19 +93,19 @@ fn random_mat_mul(iters: isize, graph_size: usize, disease: &Disease, mat_mul_fu
     }
     graph.weights = mat;
     let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
-    test_mat_mul(iters, &graph, vector, mat_mul_fun, 1)
+    test_mat_mul(iters, &graph.weights, vector, mat_mul_fun, 1)
 }
 
-fn test_mat_mul(iters: isize, graph: &Graph, vector: Vec<f32>, mat_mul_fun: MatMulFunction, gpu_restriction_factor: usize) -> io::Result<Vec<f32>> {
+fn test_mat_mul(iters: usize, matrix: &Matrix, vector: Vec<f32>, mat_mul_fun: MatMulFunction, gpu_restriction_factor: usize) -> io::Result<Vec<f32>> {
     let start_time = SystemTime::now();
     
-    let result = match &graph.weights {
+    let result = match matrix {
         Matrix::Dense(m) => {
             let mat = m.lock().unwrap().clone();
             match mat_mul_fun {
                 MatMulFunction::MultiThreaded => generic_mat_vec_mult_multi_thread(mat, vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).expect("Run failed"), // TODO: this doesnt support computation iteration
-                MatMulFunction::SingleThreaded => negative_prob_multiply_dense_matrix_vector_cpu_safe(iters, mat, vector.clone()).expect("Run failed"),
-                MatMulFunction::GPU => negative_prob_multiply_dense_matrix_vector_gpu_safe(iters, mat, vector.clone()).expect("Run failed")
+                MatMulFunction::SingleThreaded => negative_prob_multiply_dense_matrix_vector_cpu_safe(iters as isize, mat, vector.clone()).expect("Run failed"),
+                MatMulFunction::GPU => negative_prob_multiply_dense_matrix_vector_gpu_safe(iters as isize, mat, vector.clone()).expect("Run failed")
             }
         },
         Matrix::Sparse(sm) => {
@@ -156,7 +156,7 @@ fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
     //let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
     let mut vector: Vec<f32> = (0..graph_size).map(|_| 0.0).collect();
     vector[40] = 0.9;
-    let dense_result = test_mat_mul(1, &graph, vector.clone(), MatMulFunction::GPU, 1)?;
+    let dense_result = test_mat_mul(1, &graph.weights, vector.clone(), MatMulFunction::GPU, 1)?;
 
     let sp_mat;
     {
@@ -169,7 +169,7 @@ fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
     }
     graph.weights = sp_mat;
 
-    let sparse_result = test_mat_mul(1, &graph, vector.clone(), MatMulFunction::GPU, 1)?;
+    let sparse_result = test_mat_mul(1, &graph.weights, vector.clone(), MatMulFunction::GPU, 1)?;
 
     for i in 0..dense_result.len() {
         if dense_result[i] - sparse_result[i] > EPSILON*100.0 {
@@ -178,6 +178,14 @@ fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
     }
     println!("item 39 in result: {}", dense_result[39]);
     println!("item 40 in result: {}", dense_result[40]);
+    Ok(())
+}
+
+fn mat_mul_test3(disease: &Disease, size: usize, iters: usize, gpu_restriction_factor: usize) -> io::Result<()> {
+    let mat = Matrix::Sparse(Mutex::new(Arc::new(CsrMatrix::new_with_conn_prob(size, size, 0.01))));
+    let vector: Vec<f32> = (0..size).map(|_| random::<f32>()).collect();
+    test_mat_mul(iters, &mat, vector.clone(), MatMulFunction::GPU, gpu_restriction_factor)?;
+
     Ok(())
 }
 
@@ -198,7 +206,17 @@ fn main() -> io::Result<()> {
 
     //test_basic_deterministic(&flu)?;
     //mat_mul_test1(&flu)?;
-    mat_mul_test2(&flu)?;
+    //mat_mul_test2(&flu)?;
+
+    println!("1_000 nodes, 1_000 iterations");
+    println!("GPU restriction factor = 1");
+    mat_mul_test3(&flu, 1_000, 1_000, 1)?;
+    println!("GPU restriction factor = 2");
+    mat_mul_test3(&flu, 1_000, 1_000, 2)?;
+    println!("GPU restriction factor = 3");
+    mat_mul_test3(&flu, 1_000, 1_000, 3)?;
+    println!("GPU restriction factor = 4");
+    mat_mul_test3(&flu, 1_000, 1_000, 4)?;
 
     Ok(())
 }

@@ -66,6 +66,21 @@ impl CsrMatrix {
         }
     }
 
+    pub fn new_with_conn_prob(rows: usize, columns: usize, conn_prob: f32) -> CsrMatrix {
+        let mut sp_mat = CsrMatrix::new(rows, columns);
+        for i in 0..rows {
+            sp_mat.cum_row_indexes.push(sp_mat.values.len());
+            for j in 0..columns {
+                if random::<f32>() < conn_prob {
+                    sp_mat.column_indexes.push(j);
+                    sp_mat.values.push(0.5);
+                }
+            }
+        }
+        sp_mat.cum_row_indexes.push(sp_mat.values.len());
+        sp_mat
+    }
+
     pub fn from_dense(mat: Arc<Array2<f32>>) -> CsrMatrix {
         let mut sparse_mat = CsrMatrix::new(mat.shape()[0], mat.shape()[1]);
         for i in 0..mat.shape()[0] {
