@@ -210,8 +210,6 @@ fn main() -> io::Result<()> {
 
     println!("Sparsity factor 0.01");
     println!("100_000 nodes, 3 iterations");
-    println!("GPU restriction factor = 3");
-    mat_mul_test3(&flu, 100_000, 3, 3, 0.01)?;
     println!("GPU restriction factor = 4");
     mat_mul_test3(&flu, 100_000, 3, 4, 0.01)?;
 
