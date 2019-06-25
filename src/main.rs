@@ -93,10 +93,10 @@ fn random_mat_mul(iters: isize, graph_size: usize, disease: &Disease, mat_mul_fu
     }
     graph.weights = mat;
     let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
-    test_mat_mul(iters, &graph, vector, mat_mul_fun)
+    test_mat_mul(iters, &graph, vector, mat_mul_fun, 1)
 }
 
-fn test_mat_mul(iters: isize, graph: &Graph, vector: Vec<f32>, mat_mul_fun: MatMulFunction) -> io::Result<Vec<f32>> {
+fn test_mat_mul(iters: isize, graph: &Graph, vector: Vec<f32>, mat_mul_fun: MatMulFunction, gpu_restriction_factor: usize) -> io::Result<Vec<f32>> {
     let start_time = SystemTime::now();
     
     let result = match &graph.weights {
@@ -116,7 +116,7 @@ fn test_mat_mul(iters: isize, graph: &Graph, vector: Vec<f32>, mat_mul_fun: MatM
                     npmmv_gpu_set_csr_matrix_safe(sp_mat.get_ptrs(), gpu_alloc, sp_mat.rows, sp_mat.values.len());
                     npmmv_gpu_set_in_vector_safe(vector, GpuAllocations::Sparse(gpu_alloc));
                     for _ in 0..iters {
-                        npmmv_csr_gpu_compute_safe(gpu_alloc, sp_mat.rows);
+                        npmmv_csr_gpu_compute_safe(gpu_alloc, sp_mat.rows, gpu_restriction_factor);
                     }
                     let res = npmmv_gpu_get_out_vector_safe(GpuAllocations::Sparse(gpu_alloc), sp_mat.rows);
                     npmmv_csr_gpu_free_safe(gpu_alloc);
@@ -156,7 +156,7 @@ fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
     //let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
     let mut vector: Vec<f32> = (0..graph_size).map(|_| 0.0).collect();
     vector[40] = 0.9;
-    let dense_result = test_mat_mul(1, &graph, vector.clone(), MatMulFunction::GPU)?;
+    let dense_result = test_mat_mul(1, &graph, vector.clone(), MatMulFunction::GPU, 1)?;
 
     let sp_mat;
     {
@@ -169,7 +169,7 @@ fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
     }
     graph.weights = sp_mat;
 
-    let sparse_result = test_mat_mul(1, &graph, vector.clone(), MatMulFunction::GPU)?;
+    let sparse_result = test_mat_mul(1, &graph, vector.clone(), MatMulFunction::GPU, 1)?;
 
     for i in 0..dense_result.len() {
         if dense_result[i] - sparse_result[i] > EPSILON*100.0 {

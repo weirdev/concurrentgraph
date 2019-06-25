@@ -142,7 +142,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
                             println!("In vec load start");
                             npmmv_gpu_set_in_vector_safe(node_transmitivity, GpuAllocations::Sparse(ga));
                             println!("In vec loaded, compute start");
-                            npmmv_csr_gpu_compute_safe(ga, smga.0.rows);
+                            npmmv_csr_gpu_compute_safe(ga, smga.0.rows, 1);
                             println!("Computed, out vec unload start, {} rows", smga.0.rows);
                             let v = npmmv_gpu_get_out_vector_safe(GpuAllocations::Sparse(ga), smga.0.rows);
                             println!("Out vec unloaded");
