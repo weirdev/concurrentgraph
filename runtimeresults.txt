@@ -132,6 +132,7 @@ Ran in 4776 secs
 
 GPU restriction factor = 4 
 Ran in 5818 secs 
+
 Sparsity factor 0.001 
 10_000 nodes, 1000 iterations 
 GPU restriction factor = 1 
@@ -189,3 +190,54 @@ GPU restriction factor = 3
 Ran in 124 secs                                                                                                         
 GPU restriction factor = 4                                                                                              
 Ran in 162 secs
+
+Simulations
+Sparsity factor 0.001
+10_000 nodes, 1_000 steps
+Generated 100346 val sparse graph in 0 secs
+1446 dead
+1451 infected
+Ran in 27 secs
+30_000 nodes, 100 steps
+Generated 899473 val sparse graph in 8 secs
+2424 dead
+3520 infected
+Ran in 90 secs
+100_000 nodes, 10 steps
+Generated 10002406 val sparse graph in 98 secs
+0 dead
+50000 infected
+Ran in 519 secs
+Sparsity factor 0.0001
+10_000 nodes, 1_000 steps
+Generated 10197 val sparse graph in 0 secs
+532 dead
+532 infected
+Ran in 3 secs
+30_000 nodes, 100 steps
+Generated 90042 val sparse graph in 8 secs
+1793 dead
+2134 infected
+Ran in 6 secs
+
+100_000 nodes, 10 steps
+Generated 1000045 val sparse graph in 98 secs
+0 dead
+49996 infected
+Ran in 38 secs
+Sparsity factor 0.01
+10_000 nodes, 100 steps
+Generated 998223 val sparse graph in 1 secs
+840 dead
+1213 infected
+Ran in 33 secs
+30_000 nodes, 30 steps
+Generated 9001545 val sparse graph in 9 secs
+1609 dead
+2814 infected
+Ran in 393 secs
+100_000 nodes, 3 steps
+Generated 100004503 val sparse graph in 100 secs
+0 dead
+49946 infected
+Ran in 1535 secs

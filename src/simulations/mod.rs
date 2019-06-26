@@ -192,6 +192,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
             },
             AgentStatus::Dead => n.clone()
         }).collect();
+        //println!("T{}: {} dead, {} infected", ts, dead, infected);
     }
 
     match mat {
