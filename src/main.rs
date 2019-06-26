@@ -29,11 +29,12 @@ fn test_basic_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction) -> io::
     Ok(())
 }
 
-fn test_sparse_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
+fn test_sparse_stochastic(community_count: usize, community_size: usize, inter_comm_connection_prob: f32, 
+                            steps: usize, disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
     let start_time = SystemTime::now();
-    let community: Vec<Node> = (0..100).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
-    let communities: Vec<Vec<Node>> = (0..1000).map(|_| community.clone()).collect();
-    let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.001, 0.1);
+    let community: Vec<Node> = (0..community_size).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
+    let communities: Vec<Vec<Node>> = (0..community_count).map(|_| community.clone()).collect();
+    let mut graph = Graph::new_sparse_from_communities(communities, 0.2, inter_comm_connection_prob, 0.1);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     match &graph.weights {
@@ -45,7 +46,7 @@ fn test_sparse_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction) -> io:
     graph.nodes[0].infections = vec![InfectionStatus::Infected(disease.infection_length)];
     let start_time = SystemTime::now();
     //graph.simulate_basic_looped_stochastic(200, &[disease]);
-    simulate_basic_mat_stochastic(&mut graph, 200, &[disease], mat_mul_fun);
+    simulate_basic_mat_stochastic(&mut graph, steps, &[disease], mat_mul_fun);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     println!("{} dead", graph.dead_count());
@@ -202,78 +203,35 @@ fn main() -> io::Result<()> {
 
     //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
     //test_basic_stochastic(&flu, MatMulFunction::GPU)?;
-    //test_sparse_stochastic(&flu, MatMulFunction::GPU)?;
+    println!("Sparsity factor 0.001");
+    println!("10_000 nodes, 1_000 steps");
+    test_sparse_stochastic(10_000, 1, 0.001, 1_000, &flu, MatMulFunction::GPU)?;
+    println!("30_000 nodes, 100 steps");
+    test_sparse_stochastic(30_000, 1, 0.001, 100, &flu, MatMulFunction::GPU)?;
+    println!("100_000 nodes, 10 steps");
+    test_sparse_stochastic(100_000, 1, 0.001, 10, &flu, MatMulFunction::GPU)?;
+
+    println!("Sparsity factor 0.0001");
+    println!("10_000 nodes, 1_000 steps");
+    test_sparse_stochastic(10_000, 1, 0.0001, 1_000, &flu, MatMulFunction::GPU)?;
+    println!("30_000 nodes, 100 steps");
+    test_sparse_stochastic(30_000, 1, 0.0001, 100, &flu, MatMulFunction::GPU)?;
+    println!("100_000 nodes, 10 steps");
+    test_sparse_stochastic(100_000, 1, 0.0001, 10, &flu, MatMulFunction::GPU)?;
+
+    println!("Sparsity factor 0.01");
+    println!("10_000 nodes, 100 steps");
+    test_sparse_stochastic(10_000, 1, 0.01, 100, &flu, MatMulFunction::GPU)?;
+    println!("30_000 nodes, 30 steps");
+    test_sparse_stochastic(30_000, 1, 0.01, 30, &flu, MatMulFunction::GPU)?;
+    println!("100_000 nodes, 3 steps");
+    test_sparse_stochastic(100_000, 1, 0.01, 3, &flu, MatMulFunction::GPU)?;
 
     //test_basic_deterministic(&flu)?;
     //mat_mul_test1(&flu)?;
     //mat_mul_test2(&flu)?;
 
-    println!("Sparsity factor 0.01");
-    println!("100_000 nodes, 3 iterations");
-    println!("GPU restriction factor = 4");
-    mat_mul_test3(&flu, 100_000, 3, 4, 0.01)?;
-
-    println!("Sparsity factor 0.001");
-    println!("10_000 nodes, 1000 iterations");
-    println!("GPU restriction factor = 1");
-    mat_mul_test3(&flu, 30_000, 1000, 1, 0.001)?;
-    println!("GPU restriction factor = 2");
-    mat_mul_test3(&flu, 30_000, 1000, 2, 0.001)?;
-    println!("GPU restriction factor = 3");
-    mat_mul_test3(&flu, 30_000, 1000, 3, 0.001)?;
-    println!("GPU restriction factor = 4");
-    mat_mul_test3(&flu, 30_000, 1000, 4, 0.001)?;
-
-    println!("30_000 nodes, 100 iterations");
-    println!("GPU restriction factor = 1");
-    mat_mul_test3(&flu, 30_000, 100, 1, 0.001)?;
-    println!("GPU restriction factor = 2");
-    mat_mul_test3(&flu, 30_000, 100, 2, 0.001)?;
-    println!("GPU restriction factor = 3");
-    mat_mul_test3(&flu, 30_000, 100, 3, 0.001)?;
-    println!("GPU restriction factor = 4");
-    mat_mul_test3(&flu, 30_000, 100, 4, 0.001)?;
-
-    println!("100_000 nodes, 10 iterations");
-    println!("GPU restriction factor = 1");
-    mat_mul_test3(&flu, 100_000, 10, 1, 0.001)?;
-    println!("GPU restriction factor = 2");
-    mat_mul_test3(&flu, 100_000, 10, 1, 0.001)?;
-    println!("GPU restriction factor = 3");
-    mat_mul_test3(&flu, 100_000, 10, 3, 0.001)?;
-    println!("GPU restriction factor = 4");
-    mat_mul_test3(&flu, 100_000, 10, 4, 0.001)?;
-
-    println!("Sparsity factor 0.0001");
-    println!("10_000 nodes, 1000 iterations");
-    println!("GPU restriction factor = 1");
-    mat_mul_test3(&flu, 30_000, 1000, 1, 0.0001)?;
-    println!("GPU restriction factor = 2");
-    mat_mul_test3(&flu, 30_000, 1000, 2, 0.0001)?;
-    println!("GPU restriction factor = 3");
-    mat_mul_test3(&flu, 30_000, 1000, 3, 0.0001)?;
-    println!("GPU restriction factor = 4");
-    mat_mul_test3(&flu, 30_000, 1000, 4, 0.0001)?;
-
-    println!("30_000 nodes, 100 iterations");
-    println!("GPU restriction factor = 1");
-    mat_mul_test3(&flu, 30_000, 100, 1, 0.0001)?;
-    println!("GPU restriction factor = 2");
-    mat_mul_test3(&flu, 30_000, 100, 2, 0.0001)?;
-    println!("GPU restriction factor = 3");
-    mat_mul_test3(&flu, 30_000, 100, 3, 0.0001)?;
-    println!("GPU restriction factor = 4");
-    mat_mul_test3(&flu, 30_000, 100, 4, 0.0001)?;
-
-    println!("100_000 nodes, 10 iterations");
-    println!("GPU restriction factor = 1");
-    mat_mul_test3(&flu, 100_000, 10, 1, 0.0001)?;
-    println!("GPU restriction factor = 2");
-    mat_mul_test3(&flu, 100_000, 10, 1, 0.0001)?;
-    println!("GPU restriction factor = 3");
-    mat_mul_test3(&flu, 100_000, 10, 3, 0.0001)?;
-    println!("GPU restriction factor = 4");
-    mat_mul_test3(&flu, 100_000, 10, 4, 0.0001)?;
+    //mat_mul_test3(&flu, 100_000, 3, 4, 0.01)?;
 
     Ok(())
 }

@@ -272,12 +272,14 @@ impl Graph {
                 cur_comm += 1;
             }
             for j in 0..total_nodes {
-                if j >= comm_start && j < comm_start + communities[cur_comm].len() {
-                    s_w.values.push(intra_community_weight);
-                    s_w.column_indexes.push(j)
-                } else if random::<f32>() < inter_community_conn_prob {
-                    s_w.values.push(inter_community_weight);
-                    s_w.column_indexes.push(j);
+                if j != i {
+                    if j >= comm_start && j < comm_start + communities[cur_comm].len() {
+                        s_w.values.push(intra_community_weight);
+                        s_w.column_indexes.push(j)
+                    } else if random::<f32>() < inter_community_conn_prob {
+                        s_w.values.push(inter_community_weight);
+                        s_w.column_indexes.push(j);
+                    }
                 }
             }
         }
