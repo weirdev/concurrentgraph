@@ -117,7 +117,6 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
             AgentStatus::Dead => 0.0
         }).collect();
 
-        println!("comp step start");
         let pr_no_infections = match mat_mul_func {
             MatMulFunction::SingleThreaded => match mat {
                 LockedMatrix::Dense(ref mga) => negative_prob_multiply_dense_matrix_vector_cpu_safe(1, mga.0.clone(), node_transmitivity).unwrap(),
@@ -139,13 +138,9 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
                     },
                     LockedMatrix::Sparse(ref smga) => match smga.1 {
                         Some(ga) => {
-                            println!("In vec load start");
                             npmmv_gpu_set_in_vector_safe(node_transmitivity, GpuAllocations::Sparse(ga));
-                            println!("In vec loaded, compute start");
                             npmmv_csr_gpu_compute_safe(ga, smga.0.rows, 1);
-                            println!("Computed, out vec unload start, {} rows", smga.0.rows);
                             let v = npmmv_gpu_get_out_vector_safe(GpuAllocations::Sparse(ga), smga.0.rows);
-                            println!("Out vec unloaded");
                             v
                         },
                         None => panic!("GPU should be allocated at this point")
@@ -153,7 +148,6 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
                 }
             }
         };
-        println!("comp step end");
 
         let mut dead = 0;
         let mut infected = 0;
@@ -198,7 +192,6 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
             },
             AgentStatus::Dead => n.clone()
         }).collect();
-        println!("T{}: {} dead, {} infected", ts, dead, infected);
     }
 
     match mat {
