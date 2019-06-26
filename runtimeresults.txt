@@ -134,7 +134,9 @@ GPU restriction factor = 4
 Ran in 5818 secs 
 
 Sparsity factor 0.001 
-10_000 nodes, 1000 iterations 
+10_000 nodes, 1000 iterations
+
+*** These results invalid, run with 30,000 node matrix
 GPU restriction factor = 1 
 Ran in 902 secs 
 GPU restriction factor = 2
@@ -143,6 +145,7 @@ GPU restriction factor = 3
 Ran in 2913 secs
 GPU restriction factor = 4
 Ran in 3807 secs
+***
 
 30_000 nodes, 100 iterations
 GPU restriction factor = 1
