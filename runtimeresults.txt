@@ -130,15 +130,15 @@ Switched to three iterations
 GPU restriction factor = 3
 Ran in 4776 secs
 
-GPU restriction factor = 4 
-Ran in 5818 secs 
+GPU restriction factor = 4
+Ran in 5818 secs
 
-Sparsity factor 0.001 
+Sparsity factor 0.001
 10_000 nodes, 1000 iterations
 
 *** These results invalid, run with 30,000 node matrix
-GPU restriction factor = 1 
-Ran in 902 secs 
+GPU restriction factor = 1
+Ran in 902 secs
 GPU restriction factor = 2
 Ran in 2612 secs
 GPU restriction factor = 3
@@ -156,42 +156,46 @@ GPU restriction factor = 3
 Ran in 291 secs
 GPU restriction factor = 4
 Ran in 382 secs
-100_000 nodes, 10 iterations                                                                                            
-GPU restriction factor = 1                                                                                              
-Ran in 519 secs                                                                                                         
-GPU restriction factor = 2                                                                                              
-Ran in 518 secs                                                                                                         
-GPU restriction factor = 3                                                                                              
-Ran in 1650 secs                                                                                                        
-GPU restriction factor = 4                                                                                              
-Ran in 2060 secs                                                                                                        
-Sparsity factor 0.0001                                                                                                  
-10_000 nodes, 1000 iterations                                                                                           
-GPU restriction factor = 1                                                                                              
-Ran in 64 secs                                                                                                          
-GPU restriction factor = 2                                                                                              
-Ran in 145 secs                                                                                                         
-GPU restriction factor = 3                                                                                              
-Ran in 197 secs                                                                                                         
-GPU restriction factor = 4                                                                                              
-Ran in 260 secs                                                                                                         
-30_000 nodes, 100 iterations                                                                                            
-GPU restriction factor = 1                                                                                              
-Ran in 6 secs                                                                                                           
-GPU restriction factor = 2                                                                                              
-Ran in 14 secs                                                                                                          
-GPU restriction factor = 3                                                                                              
+100_000 nodes, 10 iterations
+GPU restriction factor = 1
+Ran in 519 secs
+GPU restriction factor = 2
+Ran in 518 secs
+GPU restriction factor = 3
+Ran in 1650 secs
+GPU restriction factor = 4
+Ran in 2060 secs
+
+Sparsity factor 0.0001
+*** These results invalid, run with 30,000 node matrix
+10_000 nodes, 1000 iterations
+GPU restriction factor = 1
+Ran in 64 secs
+GPU restriction factor = 2
+Ran in 145 secs
+GPU restriction factor = 3
+Ran in 197 secs
+GPU restriction factor = 4
+Ran in 260 secs
+***
+
+30_000 nodes, 100 iterations
+GPU restriction factor = 1
+Ran in 6 secs
+GPU restriction factor = 2
+Ran in 14 secs
+GPU restriction factor = 3
 Ran in 19 secs
 GPU restriction factor = 4
-Ran in 26 secs                                                                                                          
-100_000 nodes, 10 iterations                                                                                            
-GPU restriction factor = 1                                                                                              
-Ran in 38 secs                                                                                                          
-GPU restriction factor = 2                                                                                              
-Ran in 38 secs                                                                                                          
-GPU restriction factor = 3                                                                                              
-Ran in 124 secs                                                                                                         
-GPU restriction factor = 4                                                                                              
+Ran in 26 secs
+100_000 nodes, 10 iterations
+GPU restriction factor = 1
+Ran in 38 secs
+GPU restriction factor = 2
+Ran in 38 secs
+GPU restriction factor = 3
+Ran in 124 secs
+GPU restriction factor = 4
 Ran in 162 secs
 
 Simulations
