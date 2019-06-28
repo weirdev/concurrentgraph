@@ -216,14 +216,14 @@ pub fn simulate_looped_bfs(graph: &mut Graph, steps: usize, diseases: &[&Disease
         let mut new_nodes: Vec<Node> = Vec::new();
         let nodes = &mut graph.nodes;
         for (nodenum, (node, ref mut adj_weights)) in nodes.iter().zip(mat.outer_iter()).enumerate() {
-        let new_node = match node.status {
+            let new_node = match node.status {
                 // Node is asymptomatic (just means alive for basic simulation),
                 // check if it gets infected by a disease, or dies from a disease
                 AgentStatus::Asymptomatic => { 
                     let mut died = false;
                     let mut new_infections: Vec<InfectionStatus> = Vec::new();
                     // For each disease, check if the disease is passed to node,
-                    // or if node dies from the disease
+                     // or if node dies from the disease
                     let infection = match node.infections[0] {
                         // Infected, decrement counter, if would go to zero, check for death
                         InfectionStatus::Infected(t) => {
