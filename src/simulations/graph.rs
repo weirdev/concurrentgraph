@@ -2,13 +2,15 @@ use std::io;
 use std::thread;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::MutexGuard;
 use std::time::{SystemTime, UNIX_EPOCH};
+use num_traits::identities::Zero;
 
 use ndarray::{Array, Array2, Axis};
 use rand::prelude::*;
 use rand::distributions::{Poisson, Gamma};
 
-use concurrentgraph_cuda_sys::CsrMatrixPtrs;
+use concurrentgraph_cuda_sys::{CsrFloatMatrixPtrs, CsrIntMatrixPtrs};
 
 #[derive(Clone)]
 #[derive(Copy)]
@@ -37,7 +39,7 @@ pub struct Node {
 
 pub struct Graph {
     pub nodes: Vec<Node>,
-    pub weights: Matrix
+    pub weights: Matrix<f32>
 }
 
 pub enum MatMulFunction {
@@ -47,16 +49,17 @@ pub enum MatMulFunction {
 }
 
 // Compressed sparse row matrix
-pub struct CsrMatrix {
+pub struct CsrMatrix<T> {
     pub rows: usize,
     pub columns: usize,
     pub cum_row_indexes: Vec<usize>,
     pub column_indexes: Vec<usize>,
-    pub values: Vec<f32>
+    pub values: Vec<T>
 }
 
-impl CsrMatrix {
-    pub fn new(rows: usize, columns: usize) -> CsrMatrix {
+impl<T> CsrMatrix<T> 
+        where T: Clone + Copy + Zero + PartialOrd {
+    pub fn new(rows: usize, columns: usize) -> CsrMatrix<T> {
         CsrMatrix {
             rows: rows,
             columns: columns,
@@ -66,7 +69,35 @@ impl CsrMatrix {
         }
     }
 
-    pub fn new_with_conn_prob(rows: usize, columns: usize, conn_prob: f32) -> CsrMatrix {
+    pub fn from_dense(mat: Arc<Array2<T>>) -> CsrMatrix<T> {
+        let mut sparse_mat = CsrMatrix::new(mat.shape()[0], mat.shape()[1]);
+        for i in 0..mat.shape()[0] {
+            sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
+            for j in 0..mat.shape()[1] {
+                if mat[(i, j)] <= T::zero() {
+                    sparse_mat.column_indexes.push(j);
+                    sparse_mat.values.push(mat[(i, j)])
+                }
+            }
+        }
+        sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
+
+        sparse_mat
+    }
+
+    pub fn to_dense(&self) -> Array2<T> {
+        let mut mat = Array2::zeros((self.rows, self.columns));
+        for i in 0..(self.cum_row_indexes.len() - 1) {
+            for j in self.cum_row_indexes[i]..self.cum_row_indexes[i+1] {
+                mat[(i, self.column_indexes[j])] = self.values[j];
+            }
+        }
+        mat
+    }
+}
+
+impl CsrMatrix<f32> {
+    pub fn new_with_conn_prob(rows: usize, columns: usize, conn_prob: f32) -> CsrMatrix<f32> {
         let mut sp_mat = CsrMatrix::new(rows, columns);
         for i in 0..rows {
             sp_mat.cum_row_indexes.push(sp_mat.values.len());
@@ -81,34 +112,8 @@ impl CsrMatrix {
         sp_mat
     }
 
-    pub fn from_dense(mat: Arc<Array2<f32>>) -> CsrMatrix {
-        let mut sparse_mat = CsrMatrix::new(mat.shape()[0], mat.shape()[1]);
-        for i in 0..mat.shape()[0] {
-            sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
-            for j in 0..mat.shape()[1] {
-                if mat[(i, j)] <= 0.0 {
-                    sparse_mat.column_indexes.push(j);
-                    sparse_mat.values.push(mat[(i, j)])
-                }
-            }
-        }
-        sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
-
-        sparse_mat
-    }
-
-    pub fn to_dense(&self) -> Array2<f32> {
-        let mut mat = Array2::zeros((self.rows, self.columns));
-        for i in 0..(self.cum_row_indexes.len() - 1) {
-            for j in self.cum_row_indexes[i]..self.cum_row_indexes[i+1] {
-                mat[(i, self.column_indexes[j])] = self.values[j];
-            }
-        }
-        mat
-    }
-
-    pub fn get_ptrs(&self) -> CsrMatrixPtrs {
-        CsrMatrixPtrs {
+    pub fn get_ptrs(&self) -> CsrFloatMatrixPtrs {
+        CsrFloatMatrixPtrs {
             cum_row_indexes: self.cum_row_indexes.as_ptr(),
             column_indexes: self.column_indexes.as_ptr(),
             values: self.values.as_ptr()
@@ -116,9 +121,24 @@ impl CsrMatrix {
     }
 }
 
-pub enum Matrix {
-    Dense(Mutex<Arc<Array2<f32>>>),
-    Sparse(Mutex<Arc<CsrMatrix>>)
+impl CsrMatrix<isize> {
+    pub fn get_ptrs(&self) -> CsrIntMatrixPtrs {
+        CsrIntMatrixPtrs {
+            cum_row_indexes: self.cum_row_indexes.as_ptr(),
+            column_indexes: self.column_indexes.as_ptr(),
+            values: self.values.as_ptr()
+        }
+    }
+}
+
+pub enum Matrix<T> {
+    Dense(Mutex<Arc<Array2<T>>>),
+    Sparse(Mutex<Arc<CsrMatrix<T>>>)
+}
+
+pub enum LockedMatrix<T> {
+    Dense(Arc<Array2<T>>),
+    Sparse(Arc<CsrMatrix<T>>)
 }
 
 pub struct Disease<'a> {
@@ -223,13 +243,29 @@ pub fn event_prob_to_timespan(p: f32, rng: &mut ThreadRng) -> isize {
 // output elements = number of timesteps until row meets column
 // Sampling negative binomial distribution in same manner as random_negative_binomial() in
 // https://github.com/numpy/numpy/blob/master/numpy/random/src/distributions/distributions.c
-pub fn deterministic_weights(weights: &Array2<f32>) -> Array2<isize> {
+pub fn deterministic_weights(weights: &LockedMatrix<f32>) -> Matrix<isize> {
     let mut rng = thread_rng();
-    let mut determ_weights = Array2::zeros((weights.shape()[0], weights.shape()[1]));
-    for (idx, p) in weights.indexed_iter() {
-        determ_weights[idx] = event_prob_to_timespan(*p, &mut rng);
+    match weights {
+        LockedMatrix::Dense(m) => {
+            let mut determ_weights = Array2::zeros((m.shape()[0], m.shape()[1]));
+            for (idx, p) in m.indexed_iter() {
+                determ_weights[idx] = event_prob_to_timespan(*p, &mut rng);
+            }
+            Matrix::Dense(Mutex::new(Arc::new(determ_weights)))
+        },
+        LockedMatrix::Sparse(sm) => {
+            let mut determ_weights = CsrMatrix::new(sm.rows, sm.columns);
+            let mut rng = thread_rng();
+            for i in 0..sm.rows {
+                determ_weights.cum_row_indexes.push(determ_weights.values.len());
+                for j in sm.cum_row_indexes[i]..sm.cum_row_indexes[i+1] {
+                    determ_weights.column_indexes.push(sm.column_indexes[j]);
+                    determ_weights.values.push(event_prob_to_timespan(sm.values[j], &mut rng));
+                }
+            }
+            Matrix::Sparse(Mutex::new(Arc::new(determ_weights)))
+        }
     }
-    determ_weights
 }
 
 impl Graph {

@@ -8,6 +8,8 @@ use rand::prelude::*;
 #[macro_use(array)]
 extern crate ndarray;
 
+extern crate num_traits;
+
 extern crate concurrentgraph_cuda_sys;
 
 use concurrentgraph_cuda_sys::*;
@@ -59,7 +61,7 @@ fn test_sparse_stochastic(community_count: usize, community_size: usize, inter_c
 fn test_basic_deterministic(disease: &Disease) -> io::Result<()> {
     let mut graph = Graph::new_sim_graph(100, 0.3, disease, true);
     let start_time = SystemTime::now();
-    simulate_looped_bfs(&mut graph, 200, &[disease]);
+    simulate_basic_mat_bfs(&mut graph, 200, &[disease]);
     //graph.simulate_basic_looped_deterministic_shedding_incorrect(200, &[disease]);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
@@ -97,7 +99,7 @@ fn random_mat_mul(iters: usize, graph_size: usize, disease: &Disease, mat_mul_fu
     test_mat_mul(iters, &graph.weights, vector, mat_mul_fun, 1)
 }
 
-fn test_mat_mul(iters: usize, matrix: &Matrix, vector: Vec<f32>, mat_mul_fun: MatMulFunction, gpu_restriction_factor: usize) -> io::Result<Vec<f32>> {
+fn test_mat_mul(iters: usize, matrix: &Matrix<f32>, vector: Vec<f32>, mat_mul_fun: MatMulFunction, gpu_restriction_factor: usize) -> io::Result<Vec<f32>> {
     let start_time = SystemTime::now();
     
     let result = match matrix {
@@ -115,11 +117,11 @@ fn test_mat_mul(iters: usize, matrix: &Matrix, vector: Vec<f32>, mat_mul_fun: Ma
                 MatMulFunction::GPU => {
                     let gpu_alloc = npmmv_csr_gpu_allocate_safe(sp_mat.rows, sp_mat.columns, sp_mat.values.len());
                     npmmv_gpu_set_csr_matrix_safe(sp_mat.get_ptrs(), gpu_alloc, sp_mat.rows, sp_mat.values.len());
-                    npmmv_gpu_set_in_vector_safe(vector, GpuAllocations::Sparse(gpu_alloc));
+                    npmmv_gpu_set_in_vector_safe(vector, NpmmvAllocations::Sparse(gpu_alloc));
                     for _ in 0..iters {
                         npmmv_csr_gpu_compute_safe(gpu_alloc, sp_mat.rows, gpu_restriction_factor);
                     }
-                    let res = npmmv_gpu_get_out_vector_safe(GpuAllocations::Sparse(gpu_alloc), sp_mat.rows);
+                    let res = npmmv_gpu_get_out_vector_safe(NpmmvAllocations::Sparse(gpu_alloc), sp_mat.rows);
                     npmmv_csr_gpu_free_safe(gpu_alloc);
                     res
                 },

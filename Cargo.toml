@@ -8,6 +8,7 @@ edition = "2018"
 ndarray = "0.11"
 rand = "0.6.0"
 libc = "*"
+num-traits = "*"
 concurrentgraph_cuda_sys = { path = "../concurrentgraph_cuda_sys" }
 
 [target.x86_64-unknown-linux-gnu]

@@ -9,11 +9,6 @@ use concurrentgraph_cuda_sys::*;
 mod graph;
 pub use graph::*;
 
-enum LockedMatrix<'a> {
-    Dense((MutexGuard<'a, Arc<Array2<f32>>>, Option<NpmmvDenseGpuAllocations>)),
-    Sparse((MutexGuard<'a, Arc<CsrMatrix>>, Option<NpmmvCsrGpuAllocations>))
-}
-
 pub fn simulate_basic_looped_stochastic(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
     let mat = match &graph.weights {
         Matrix::Dense(m) => m.lock().unwrap(),
@@ -80,6 +75,11 @@ pub fn simulate_basic_looped_stochastic(graph: &mut Graph, steps: usize, disease
 }
 
 pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: &[&Disease], mat_mul_func: MatMulFunction) {
+    enum LockedMatrixAndGpuAllocs<'a> {
+        Dense((MutexGuard<'a, Arc<Array2<f32>>>, Option<NpmmvDenseGpuAllocations>)),
+        Sparse((MutexGuard<'a, Arc<CsrMatrix<f32>>>, Option<NpmmvCsrGpuAllocations>))
+    }
+
     let mat = match &mut graph.weights {
         Matrix::Dense(m) => {
             let lmat = m.lock().unwrap();
@@ -91,7 +91,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
                 },
                 _ => None
             };
-            LockedMatrix::Dense((lmat, gpualloc))
+            LockedMatrixAndGpuAllocs::Dense((lmat, gpualloc))
         },
         Matrix::Sparse(sm) => {
             let lmat = sm.lock().unwrap();
@@ -103,9 +103,11 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
                 },
                 _ => None
             };
-            LockedMatrix::Sparse((lmat, gpualloc))
+            LockedMatrixAndGpuAllocs::Sparse((lmat, gpualloc))
         }
     };
+
+    let mut quarantined_nodes: Vec<Node> = Vec::new();
 
     for ts in 0..steps {
         let node_transmitivity: Vec<f32> = graph.nodes.iter().map(|n| match n.status {
@@ -119,28 +121,28 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
 
         let pr_no_infections = match mat_mul_func {
             MatMulFunction::SingleThreaded => match mat {
-                LockedMatrix::Dense(ref mga) => negative_prob_multiply_dense_matrix_vector_cpu_safe(1, mga.0.clone(), node_transmitivity).unwrap(),
-                LockedMatrix::Sparse(_) => panic!("Sparse matrices not implemented for CPU simulations")
+                LockedMatrixAndGpuAllocs::Dense(ref mga) => negative_prob_multiply_dense_matrix_vector_cpu_safe(1, mga.0.clone(), node_transmitivity).unwrap(),
+                LockedMatrixAndGpuAllocs::Sparse(_) => panic!("Sparse matrices not implemented for CPU simulations")
             },
             MatMulFunction::MultiThreaded => match mat {
-                LockedMatrix::Dense(ref mga) => generic_mat_vec_mult_multi_thread(mga.0.clone(), node_transmitivity, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap(),
-                LockedMatrix::Sparse(_) => panic!("Sparse matrices not implemented for CPU simulations")
+                LockedMatrixAndGpuAllocs::Dense(ref mga) => generic_mat_vec_mult_multi_thread(mga.0.clone(), node_transmitivity, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap(),
+                LockedMatrixAndGpuAllocs::Sparse(_) => panic!("Sparse matrices not implemented for CPU simulations")
             },
             MatMulFunction::GPU => {
                 match mat {
-                    LockedMatrix::Dense(ref mga) => match mga.1 {
+                    LockedMatrixAndGpuAllocs::Dense(ref mga) => match mga.1 {
                         Some(ga) => {
-                            npmmv_gpu_set_in_vector_safe(node_transmitivity, GpuAllocations::Dense(ga));
+                            npmmv_gpu_set_in_vector_safe(node_transmitivity, NpmmvAllocations::Dense(ga));
                             npmmv_dense_gpu_compute_safe(ga, mga.0.shape()[0], mga.0.shape()[1]);
-                            npmmv_gpu_get_out_vector_safe(GpuAllocations::Dense(ga), mga.0.shape()[1])
+                            npmmv_gpu_get_out_vector_safe(NpmmvAllocations::Dense(ga), mga.0.shape()[1])
                         },
                         None => panic!("GPU should be allocated at this point")
                     },
-                    LockedMatrix::Sparse(ref smga) => match smga.1 {
+                    LockedMatrixAndGpuAllocs::Sparse(ref smga) => match smga.1 {
                         Some(ga) => {
-                            npmmv_gpu_set_in_vector_safe(node_transmitivity, GpuAllocations::Sparse(ga));
+                            npmmv_gpu_set_in_vector_safe(node_transmitivity, NpmmvAllocations::Sparse(ga));
                             npmmv_csr_gpu_compute_safe(ga, smga.0.rows, 1);
-                            let v = npmmv_gpu_get_out_vector_safe(GpuAllocations::Sparse(ga), smga.0.rows);
+                            let v = npmmv_gpu_get_out_vector_safe(NpmmvAllocations::Sparse(ga), smga.0.rows);
                             v
                         },
                         None => panic!("GPU should be allocated at this point")
@@ -148,6 +150,17 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
                 }
             }
         };
+
+        quarantined_nodes.iter_mut().for_each(|n| match n.infections[0] {
+            InfectionStatus::Infected(1) => {
+                n.infections[0] = InfectionStatus::NotInfected(1.0);
+                if random::<f32>() < diseases[0].mortality_rate {
+                    println!("Quarantined patient died");
+                }
+            },
+            InfectionStatus::Infected(t) => n.infections[0] = InfectionStatus::Infected(t-1),
+            InfectionStatus::NotInfected(_) => ()
+        });
 
         let mut dead = 0;
         let mut infected = 0;
@@ -164,6 +177,11 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
                             InfectionStatus::NotInfected(diseases[0].post_infection_immunity)
                         },
                     InfectionStatus::Infected(t) => {
+                        if diseases[0].infection_length - 3 == t {
+                            if random::<f32>() < 0.5 {
+                                quarantined_nodes.push(n.clone());
+                            }
+                        }
                         infected += 1;
                         InfectionStatus::Infected(t-1)
                     },
@@ -196,79 +214,70 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
     }
 
     match mat {
-        LockedMatrix::Dense(mga) => match mga.1 {
+        LockedMatrixAndGpuAllocs::Dense(mga) => match mga.1 {
             Some(ga) => npmmv_dense_gpu_free_safe(ga),
             None => ()
         },
-        LockedMatrix::Sparse(smga) => match smga.1 {
+        LockedMatrixAndGpuAllocs::Sparse(smga) => match smga.1 {
             Some(ga) => npmmv_csr_gpu_free_safe(ga),
             None => ()
         }     
     }
 }
 
-pub fn simulate_looped_bfs(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
+pub fn simulate_basic_mat_bfs(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
     let mut mat = match &graph.weights {
-        Matrix::Dense(m) => m.lock().unwrap(),
-        Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
+        Matrix::Dense(_) => panic!("Dense matrices not implemented yet"),
+        Matrix::Sparse(sm) => LockedMatrix::Sparse(sm.lock().unwrap().clone())
     };
-    for ts in 1..steps+1 {
-        let mut new_nodes: Vec<Node> = Vec::new();
-        let nodes = &mut graph.nodes;
-        for (nodenum, (node, ref mut adj_weights)) in nodes.iter().zip(mat.outer_iter()).enumerate() {
-            let new_node = match node.status {
-                // Node is asymptomatic (just means alive for basic simulation),
-                // check if it gets infected by a disease, or dies from a disease
-                AgentStatus::Asymptomatic => { 
-                    let mut died = false;
-                    let mut new_infections: Vec<InfectionStatus> = Vec::new();
-                    // For each disease, check if the disease is passed to node,
-                     // or if node dies from the disease
-                    let infection = match node.infections[0] {
-                        // Infected, decrement counter, if would go to zero, check for death
-                        InfectionStatus::Infected(t) => {
-                            if ts - t == diseases[0].infection_length {
-                                died = true;
-                            }
-                            InfectionStatus::Infected(t)
-                        },
-                        // Not infected, check for transmission
-                        InfectionStatus::NotInfected(immunity) => {
-                            let incoming_infectors = adj_weights.into_iter().enumerate()
-                                .filter(|(_, w)| **w != 0.0)
-                                .filter_map(|(i, w)| match nodes[i].infections[0] {
-                                    InfectionStatus::NotInfected(_) => None,
-                                    InfectionStatus::Infected(t) => Some((i, w, t))
-                                });
-                            
-                            let transmission = incoming_infectors.fold(false, |infection, (_, w, t)| 
-                                infection || random::<f32>() < (diseases[0].transmission_rate * (*(*diseases[0]).shedding_fun)((ts - t) as isize) * (1.0-immunity) * *w)
-                            );
-                            if transmission {
-                                InfectionStatus::Infected(ts)
-                            } else {
-                                node.infections[0]
-                            }
-                        }
-                    };
-                    new_infections.push(infection);
 
-                    Node {
-                        status: if died {
-                                AgentStatus::Dead
-                            } else {
-                                AgentStatus::Asymptomatic
-                            },
-                        infections: new_infections
-                    }
-                },
-                AgentStatus::Dead => node.clone()
-            };
-            new_nodes.push(new_node);
-        }
-        graph.nodes = new_nodes;
-        println!("T{}: {} dead, {} infected", ts, graph.dead_count(), graph.infected_count(0));
+    let mut determ_weights = deterministic_weights(&mat);
+
+    let mut infections: Vec<usize> = graph.nodes.iter().map(|n| match n.infections[0] {
+        InfectionStatus::Infected(_) => 1,
+        InfectionStatus::NotInfected(_) => 0
+    }).collect();
+
+    enum LockedMatrixAndGpuAllocs {
+        Dense((Arc<Array2<isize>>, ())),
+        Sparse((Arc<CsrMatrix<isize>>, BfsCsrGpuAllocations))
     }
+
+    let mut mat_allocs = match determ_weights {
+        Matrix::Dense(m) => LockedMatrixAndGpuAllocs::Dense((m.lock().unwrap().clone(), ())),
+        Matrix::Sparse(sm) => {
+            let lsm = sm.lock().unwrap().clone();
+            let ga = bfs_csr_gpu_allocate_safe(lsm.rows, lsm.values.len());
+            
+            bfs_gpu_set_csr_matrix_safe(lsm.get_ptrs(), ga, lsm.rows, lsm.values.len());
+            
+            bfs_gpu_set_in_vector_safe(infections, BfsAllocations::Sparse(ga));
+
+            LockedMatrixAndGpuAllocs::Sparse((lsm, ga))
+        }
+    };
+
+    for ts in 0..steps {
+        mat_allocs = match mat_allocs {
+            LockedMatrixAndGpuAllocs::Dense(_) => panic!("Dense operations not implemented yet"),
+            LockedMatrixAndGpuAllocs::Sparse(mga) => {
+                bfs_csr_gpu_compute_safe(mga.1, mga.0.rows);
+                let new_ga = match bfs_gpu_swap_in_out_vector_refs(BfsAllocations::Sparse(mga.1)) {
+                    BfsAllocations::Sparse(ga) => ga,
+                    _ => panic!("Must be sparse")
+                };
+                LockedMatrixAndGpuAllocs::Sparse((mga.0, new_ga))
+            }
+        };
+    }
+
+    let out_infections = match mat_allocs {
+        LockedMatrixAndGpuAllocs::Dense(_) => panic!("Dense operations not implemented yet"),
+        LockedMatrixAndGpuAllocs::Sparse(mga) => bfs_gpu_get_out_vector_safe(BfsAllocations::Sparse(mga.1), mga.0.rows)
+    };
+    
+    let infection_count: usize = out_infections.iter().sum();
+    println!("{} infections", infection_count);
 }
 
 pub fn simulate_basic_looped_deterministic(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
@@ -276,7 +285,10 @@ pub fn simulate_basic_looped_deterministic(graph: &mut Graph, steps: usize, dise
         Matrix::Dense(m) => m.lock().unwrap(),
         Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
     };
-    let mut determ_weights = deterministic_weights(&mat);
+    let mut determ_weights = match deterministic_weights(&LockedMatrix::Dense(mat.clone())) {
+        Matrix::Dense(m) => (*m.lock().unwrap().clone()).clone(),
+        Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
+    };
     for t in 0..steps {
         let mut new_nodes: Vec<Node> = Vec::new();
         // For each node and its outgoing edges
@@ -353,7 +365,10 @@ pub fn simulate_simplistic_mat_deterministic(graph: &mut Graph, steps: usize, di
         Matrix::Dense(m) => m.lock().unwrap(),
         Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
     };
-    let mut determ_weights = deterministic_weights(&mat);
+    let mut determ_weights = match deterministic_weights(&LockedMatrix::Dense(mat.clone())) {
+        Matrix::Dense(m) => (*m.lock().unwrap().clone()).clone(),
+        Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
+    };
     for t in 0..steps {
         //println!("t: {}, n_infection_prs: {:?}", t, log_pr_infections.iter().map(|l| (2.0 as f32).powf(*l)).collect::<Vec<f32>>());
         graph.nodes = graph.nodes.iter().enumerate().map(|(i, n)| match n.status {
@@ -402,7 +417,10 @@ pub fn simulate_basic_looped_deterministic_shedding_incorrect(graph: &mut Graph,
         Matrix::Dense(m) => m.lock().unwrap().clone(),
         Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
     };
-    let mut determ_weights = deterministic_weights(&mat);
+    let mut determ_weights = match deterministic_weights(&LockedMatrix::Dense(mat.clone())) {
+        Matrix::Dense(m) => (*m.lock().unwrap().clone()).clone(),
+        Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
+    };
     for t in 0..steps {
         let mut new_nodes: Vec<Node> = Vec::new();
         // For each node and its outgoing edges
