@@ -60,7 +60,7 @@ fn test_sparse_stochastic(community_count: usize, community_size: usize, inter_c
 
 fn test_basic_deterministic(disease: &Disease) -> io::Result<()> {
     let community: Vec<Node> = (0..100).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
-    let communities: Vec<Vec<Node>> = (0..1000).map(|_| community.clone()).collect();
+    let communities: Vec<Vec<Node>> = (0..200).map(|_| community.clone()).collect();
     let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.1, 0.1);
     
     simulate_basic_mat_bfs_gpu(&mut graph, 200, &[disease]);
