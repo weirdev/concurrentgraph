@@ -259,7 +259,7 @@ pub fn simulate_basic_mat_bfs_cpu(graph: &mut Graph, steps: usize, diseases: &[&
     }
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
-    println!("GPU Ran in {} secs", runtime.as_secs());
+    println!("CPU Ran in {} secs", runtime.as_secs());
     
     let infection_count: usize = infections.iter().sum();
     println!("{} infections", infection_count);
