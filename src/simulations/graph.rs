@@ -49,6 +49,7 @@ pub enum MatMulFunction {
 }
 
 // Compressed sparse row matrix
+#[derive(Clone)]
 pub struct CsrMatrix<T> {
     pub rows: usize,
     pub columns: usize,

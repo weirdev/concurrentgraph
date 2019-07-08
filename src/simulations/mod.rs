@@ -225,7 +225,43 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
     }
 }
 
-pub fn simulate_basic_mat_bfs(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
+pub fn simulate_basic_mat_bfs_cpu(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
+    let mut mat = match &graph.weights {
+        Matrix::Dense(_) => panic!("Dense matrices not implemented yet"),
+        Matrix::Sparse(sm) => LockedMatrix::Sparse(sm.lock().unwrap().clone())
+    };
+
+    let mut determ_weights = match deterministic_weights(&mat) {
+        Matrix::Dense(_) => panic!("not implemented"),
+        Matrix::Sparse(m) => (**m.lock().unwrap()).clone()
+    };
+
+    let mut infections: Vec<usize> = graph.nodes.iter().map(|n| match n.infections[0] {
+        InfectionStatus::Infected(_) => 1,
+        InfectionStatus::NotInfected(_) => 0
+    }).collect();
+
+    for ts in 0..steps {
+        for i in 0..infections.len() {
+            if infections[i] == 1 {
+                for c in determ_weights.cum_row_indexes[i]..determ_weights.cum_row_indexes[i+1] {
+                    let d = determ_weights.values[c];
+                    if d != 0 {
+                        if d == 1 {
+                            infections[determ_weights.column_indexes[c]] = 1;
+                        }
+                        determ_weights.values[c] -= 1;
+                    }
+                }
+            }
+        }
+    }
+    
+    let infection_count: usize = infections.iter().sum();
+    println!("{} infections", infection_count);
+}
+
+pub fn simulate_basic_mat_bfs_gpu(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
     let mut mat = match &graph.weights {
         Matrix::Dense(_) => panic!("Dense matrices not implemented yet"),
         Matrix::Sparse(sm) => LockedMatrix::Sparse(sm.lock().unwrap().clone())

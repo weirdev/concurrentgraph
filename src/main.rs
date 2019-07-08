@@ -59,24 +59,22 @@ fn test_sparse_stochastic(community_count: usize, community_size: usize, inter_c
 }
 
 fn test_basic_deterministic(disease: &Disease) -> io::Result<()> {
-    let mut graph = Graph::new_sim_graph(100, 0.3, disease, true);
+    let community: Vec<Node> = (0..100).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
+    let communities: Vec<Vec<Node>> = (0..100).map(|_| community.clone()).collect();
+    let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.1, 0.1);
     let start_time = SystemTime::now();
-    simulate_basic_mat_bfs(&mut graph, 200, &[disease]);
+    simulate_basic_mat_bfs_gpu(&mut graph, 200, &[disease]);
     //graph.simulate_basic_looped_deterministic_shedding_incorrect(200, &[disease]);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
-    println!("{} dead", graph.dead_count());
-    println!("{} infected", graph.infected_count(0));
-    println!("Ran in {} secs", runtime.as_secs());
+    println!("GPU Ran in {} secs", runtime.as_secs());
     
-    let mut graph = Graph::new_sim_graph(100, 0.3, disease, false);
     let start_time = SystemTime::now();
-    simulate_simplistic_mat_deterministic(&mut graph, 200, &[disease]);
+    simulate_basic_mat_bfs_cpu(&mut graph, 200, &[disease]);
+    //graph.simulate_basic_looped_deterministic_shedding_incorrect(200, &[disease]);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
-    println!("{} dead", graph.dead_count());
-    println!("{} infected", graph.infected_count(0));
-    println!("Ran in {} secs", runtime.as_secs());
+    println!("CPU Ran in {} secs", runtime.as_secs());
     Ok(())
 }
 
@@ -205,6 +203,7 @@ fn main() -> io::Result<()> {
 
     //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
     //test_basic_stochastic(&flu, MatMulFunction::GPU)?;
+    /*
     println!("Sparsity factor 0.001");
     println!("10_000 nodes, 1_000 steps");
     test_sparse_stochastic(10_000, 1, 0.001, 1_000, &flu, MatMulFunction::GPU)?;
@@ -212,22 +211,9 @@ fn main() -> io::Result<()> {
     test_sparse_stochastic(30_000, 1, 0.001, 100, &flu, MatMulFunction::GPU)?;
     println!("100_000 nodes, 10 steps");
     test_sparse_stochastic(100_000, 1, 0.001, 10, &flu, MatMulFunction::GPU)?;
-
-    println!("Sparsity factor 0.0001");
-    println!("10_000 nodes, 1_000 steps");
-    test_sparse_stochastic(10_000, 1, 0.0001, 1_000, &flu, MatMulFunction::GPU)?;
-    println!("30_000 nodes, 100 steps");
-    test_sparse_stochastic(30_000, 1, 0.0001, 100, &flu, MatMulFunction::GPU)?;
-    println!("100_000 nodes, 10 steps");
-    test_sparse_stochastic(100_000, 1, 0.0001, 10, &flu, MatMulFunction::GPU)?;
-
-    println!("Sparsity factor 0.01");
-    println!("10_000 nodes, 100 steps");
-    test_sparse_stochastic(10_000, 1, 0.01, 100, &flu, MatMulFunction::GPU)?;
-    println!("30_000 nodes, 30 steps");
-    test_sparse_stochastic(30_000, 1, 0.01, 30, &flu, MatMulFunction::GPU)?;
-    println!("100_000 nodes, 3 steps");
-    test_sparse_stochastic(100_000, 1, 0.01, 3, &flu, MatMulFunction::GPU)?;
+    */
+    
+    test_basic_deterministic(&flu)?;
 
     //test_basic_deterministic(&flu)?;
     //mat_mul_test1(&flu)?;
