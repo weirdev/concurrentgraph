@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::sync::MutexGuard;
 use rand::prelude::*;
+use std::time::SystemTime;
 
 use ndarray::{Array, Array2, Axis};
 
@@ -240,7 +241,7 @@ pub fn simulate_basic_mat_bfs_cpu(graph: &mut Graph, steps: usize, diseases: &[&
         InfectionStatus::Infected(_) => 1,
         InfectionStatus::NotInfected(_) => 0
     }).collect();
-
+    let start_time = SystemTime::now();
     for ts in 0..steps {
         for i in 0..infections.len() {
             if infections[i] == 1 {
@@ -256,6 +257,9 @@ pub fn simulate_basic_mat_bfs_cpu(graph: &mut Graph, steps: usize, diseases: &[&
             }
         }
     }
+    let runtime = SystemTime::now().duration_since(start_time)
+        .expect("Time went backwards");
+    println!("GPU Ran in {} secs", runtime.as_secs());
     
     let infection_count: usize = infections.iter().sum();
     println!("{} infections", infection_count);
@@ -293,6 +297,7 @@ pub fn simulate_basic_mat_bfs_gpu(graph: &mut Graph, steps: usize, diseases: &[&
         }
     };
 
+    let start_time = SystemTime::now();
     for ts in 0..steps {
         mat_allocs = match mat_allocs {
             LockedMatrixAndGpuAllocs::Dense(_) => panic!("Dense operations not implemented yet"),
@@ -306,6 +311,9 @@ pub fn simulate_basic_mat_bfs_gpu(graph: &mut Graph, steps: usize, diseases: &[&
             }
         };
     }
+    let runtime = SystemTime::now().duration_since(start_time)
+        .expect("Time went backwards");
+    println!("GPU Ran in {} secs", runtime.as_secs());
 
     let out_infections = match mat_allocs {
         LockedMatrixAndGpuAllocs::Dense(_) => panic!("Dense operations not implemented yet"),
