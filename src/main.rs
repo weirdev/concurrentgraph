@@ -60,15 +60,15 @@ fn test_sparse_stochastic(community_count: usize, community_size: usize, inter_c
 
 fn test_basic_deterministic(disease: &Disease) -> io::Result<()> {
     let community: Vec<Node> = (0..100).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
-    let communities: Vec<Vec<Node>> = (0..250).map(|_| community.clone()).collect();
+    let communities: Vec<Vec<Node>> = (0..400).map(|_| community.clone()).collect();
     let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.1, 0.1);
     
-    simulate_basic_mat_bfs_gpu(&mut graph, 2000, &[disease]);
+    simulate_basic_mat_bfs_gpu(&mut graph, 20000, &[disease]);
     //graph.simulate_basic_looped_deterministic_shedding_incorrect(200, &[disease]);
     
     
     //let start_time = SystemTime::now();
-    simulate_basic_mat_bfs_cpu(&mut graph, 2000, &[disease]);
+    simulate_basic_mat_bfs_cpu(&mut graph, 20000, &[disease]);
     //graph.simulate_basic_looped_deterministic_shedding_incorrect(200, &[disease]);
     /*let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");*/
