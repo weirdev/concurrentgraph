@@ -264,6 +264,7 @@ pub fn deterministic_weights(weights: &LockedMatrix<f32>) -> Matrix<isize> {
                     determ_weights.values.push(event_prob_to_timespan(sm.values[j], &mut rng));
                 }
             }
+            determ_weights.cum_row_indexes.push(determ_weights.values.len());
             Matrix::Sparse(Mutex::new(Arc::new(determ_weights)))
         }
     }
