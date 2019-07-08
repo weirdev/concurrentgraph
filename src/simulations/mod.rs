@@ -238,8 +238,8 @@ pub fn simulate_basic_mat_bfs_cpu(graph: &mut Graph, steps: usize, diseases: &[&
     };
 
     let mut infections: Vec<usize> = graph.nodes.iter().map(|n| match n.infections[0] {
-        InfectionStatus::Infected(_) => 1,
-        InfectionStatus::NotInfected(_) => 0
+        InfectionStatus::Infected(_) => 0,
+        InfectionStatus::NotInfected(_) => 1
     }).collect();
     let start_time = SystemTime::now();
     for ts in 0..steps {
@@ -274,8 +274,8 @@ pub fn simulate_basic_mat_bfs_gpu(graph: &mut Graph, steps: usize, diseases: &[&
     let mut determ_weights = deterministic_weights(&mat);
 
     let mut infections: Vec<usize> = graph.nodes.iter().map(|n| match n.infections[0] {
-        InfectionStatus::Infected(_) => 1,
-        InfectionStatus::NotInfected(_) => 0
+        InfectionStatus::Infected(_) => 0,
+        InfectionStatus::NotInfected(_) => 1
     }).collect();
 
     enum LockedMatrixAndGpuAllocs {
