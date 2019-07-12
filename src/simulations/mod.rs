@@ -1,5 +1,4 @@
-use std::sync::Arc;
-use std::sync::MutexGuard;
+use std::sync::{Arc, Mutex, MutexGuard};
 use rand::prelude::*;
 use std::time::SystemTime;
 
@@ -227,12 +226,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
 }
 
 pub fn simulate_basic_mat_bfs_cpu(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
-    let mut mat = match &graph.weights {
-        Matrix::Dense(_) => panic!("Dense matrices not implemented yet"),
-        Matrix::Sparse(sm) => LockedMatrix::Sparse(sm.lock().unwrap().clone())
-    };
-
-    let mut determ_weights = match deterministic_weights(&mat) {
+    let mut determ_weights = match graph.deterministic_infection_weights(diseases[0]) {
         Matrix::Dense(_) => panic!("not implemented"),
         Matrix::Sparse(m) => (**m.lock().unwrap()).clone()
     };
@@ -266,14 +260,36 @@ pub fn simulate_basic_mat_bfs_cpu(graph: &mut Graph, steps: usize, diseases: &[&
 }
 
 pub fn simulate_basic_mat_bfs_gpu(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
-    let mut mat = match &graph.weights {
-        Matrix::Dense(_) => panic!("Dense matrices not implemented yet"),
-        Matrix::Sparse(sm) => LockedMatrix::Sparse(sm.lock().unwrap().clone())
+
+    let determ_weights = graph.deterministic_infection_weights(diseases[0]);
+
+    let determ_weights = match &graph.weights {
+        Matrix::Dense(_) => panic!("not implemented"),
+        Matrix::Sparse(sm) => {
+            let sm = sm.lock().unwrap().clone();
+            let mat_ptrs = sm.get_ptrs();
+            let mut shedding_curve: Vec<f32> = Vec::new();
+            for i in 0..diseases[0].infection_length {
+                shedding_curve.push((*diseases[0].shedding_fun)((diseases[0].infection_length-i) as isize));
+            }
+            let immunities: Vec<f32> = graph.nodes.iter().map(|n| match n.infections[0] {
+                InfectionStatus::Infected(_) => 1.0,
+                InfectionStatus::NotInfected(immun) => immun
+            }).collect();
+            
+            let determ_w_vals = graph_deterministic_weights_gpu_safe(mat_ptrs, sm.rows, sm.values.len(), immunities, shedding_curve, diseases[0].infection_length, diseases[0].transmission_rate);
+        
+            let mut determ_weights_m: CsrMatrix<isize> = CsrMatrix::new(sm.rows, sm.columns);
+            determ_weights_m.cum_row_indexes = sm.cum_row_indexes.clone();
+            determ_weights_m.column_indexes = sm.column_indexes.clone();
+            determ_weights_m.values = determ_w_vals;
+
+            Matrix::Sparse(Mutex::new(Arc::new(determ_weights_m)))
+        }
     };
 
-    let mut determ_weights = deterministic_weights(&mat);
 
-    let mut infections: Vec<usize> = graph.nodes.iter().map(|n| match n.infections[0] {
+    let infections: Vec<usize> = graph.nodes.iter().map(|n| match n.infections[0] {
         InfectionStatus::Infected(_) => 1,
         InfectionStatus::NotInfected(_) => 0
     }).collect();
@@ -329,7 +345,7 @@ pub fn simulate_basic_looped_deterministic(graph: &mut Graph, steps: usize, dise
         Matrix::Dense(m) => m.lock().unwrap(),
         Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
     };
-    let mut determ_weights = match deterministic_weights(&LockedMatrix::Dense(mat.clone())) {
+    let mut determ_weights = match deterministic_contact_weights(&LockedMatrix::Dense(mat.clone())) {
         Matrix::Dense(m) => (*m.lock().unwrap().clone()).clone(),
         Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
     };
@@ -409,7 +425,7 @@ pub fn simulate_simplistic_mat_deterministic(graph: &mut Graph, steps: usize, di
         Matrix::Dense(m) => m.lock().unwrap(),
         Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
     };
-    let mut determ_weights = match deterministic_weights(&LockedMatrix::Dense(mat.clone())) {
+    let mut determ_weights = match deterministic_contact_weights(&LockedMatrix::Dense(mat.clone())) {
         Matrix::Dense(m) => (*m.lock().unwrap().clone()).clone(),
         Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
     };
@@ -461,7 +477,7 @@ pub fn simulate_basic_looped_deterministic_shedding_incorrect(graph: &mut Graph,
         Matrix::Dense(m) => m.lock().unwrap().clone(),
         Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
     };
-    let mut determ_weights = match deterministic_weights(&LockedMatrix::Dense(mat.clone())) {
+    let mut determ_weights = match deterministic_contact_weights(&LockedMatrix::Dense(mat.clone())) {
         Matrix::Dense(m) => (*m.lock().unwrap().clone()).clone(),
         Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
     };

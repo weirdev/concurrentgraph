@@ -63,16 +63,20 @@ fn test_basic_deterministic(disease: &Disease) -> io::Result<()> {
     let communities: Vec<Vec<Node>> = (0..400).map(|_| community.clone()).collect();
     let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.1, 0.1);
     
-    simulate_basic_mat_bfs_gpu(&mut graph, 20000, &[disease]);
+    let start_time = SystemTime::now();
+    simulate_basic_mat_bfs_gpu(&mut graph, 1000, &[disease]);
+    let runtime = SystemTime::now().duration_since(start_time)
+        .expect("Time went backwards");
+    println!("total GPU Ran in {} secs", runtime.as_secs());
     //graph.simulate_basic_looped_deterministic_shedding_incorrect(200, &[disease]);
     
     
-    //let start_time = SystemTime::now();
-    simulate_basic_mat_bfs_cpu(&mut graph, 20000, &[disease]);
+    let start_time = SystemTime::now();
+    simulate_basic_mat_bfs_cpu(&mut graph, 1000, &[disease]);
     //graph.simulate_basic_looped_deterministic_shedding_incorrect(200, &[disease]);
-    /*let runtime = SystemTime::now().duration_since(start_time)
-        .expect("Time went backwards");*/
-    //println!("CPU Ran in {} secs", runtime.as_secs());
+    let runtime = SystemTime::now().duration_since(start_time)
+        .expect("Time went backwards");
+    println!("total CPU Ran in {} secs", runtime.as_secs());
     Ok(())
 }
 

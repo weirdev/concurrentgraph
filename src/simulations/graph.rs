@@ -95,6 +95,25 @@ impl<T> CsrMatrix<T>
         }
         mat
     }
+
+    pub fn sort_rows(&self) -> CsrMatrix<T> {
+        let mut row_sizes: Vec<usize> = Vec::with_capacity(self.rows);
+        for i in 0..self.rows {
+            row_sizes.push(self.cum_row_indexes[i+1]-self.cum_row_indexes[i]);
+        }
+        let mut sorted_sizes: Vec<(usize, usize)> = row_sizes.into_iter().enumerate().collect();
+        sorted_sizes.sort_by_key(|x| x.1);
+
+        let mut sparse_mat = CsrMatrix::new(self.rows, self.columns);
+        for i in 0..self.rows {
+            sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
+            let row_to_copy = sorted_sizes[i].0;
+            sparse_mat.column_indexes.extend_from_slice(&self.column_indexes[self.cum_row_indexes[row_to_copy]..self.cum_row_indexes[row_to_copy+1]]);
+            sparse_mat.values.extend_from_slice(&self.values[self.cum_row_indexes[row_to_copy]..self.cum_row_indexes[row_to_copy+1]]);
+        }
+        sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
+        sparse_mat
+    }
 }
 
 impl CsrMatrix<f32> {
@@ -148,6 +167,8 @@ pub struct Disease<'a> {
     pub mortality_rate: f32,
     pub infection_length: usize,
     pub post_infection_immunity: f32,
+    
+    /// Days of infection left -> shedding probability
     pub shedding_fun: Box<Fn(isize) -> f32>
 }
 
@@ -233,6 +254,8 @@ fn generic_mat_vec_mult_single_thread<'a, D>(mat_lock: &Mutex<Arc<Array2<D>>>, v
     }
 }
 
+/// Given the probability of an event, uses the negative binomial distribution
+/// to sample the number of timesteps until the event occurs
 pub fn event_prob_to_timespan(p: f32, rng: &mut ThreadRng) -> isize {
     if p > 0.0 {
         let y = rng.sample(Gamma::new(1.0, ((1.0 - p) / p) as f64));
@@ -240,11 +263,24 @@ pub fn event_prob_to_timespan(p: f32, rng: &mut ThreadRng) -> isize {
     else {-1}
 }
 
-// weights elements = probability of meeting at a given timestep
-// output elements = number of timesteps until row meets column
-// Sampling negative binomial distribution in same manner as random_negative_binomial() in
-// https://github.com/numpy/numpy/blob/master/numpy/random/src/distributions/distributions.c
-pub fn deterministic_weights(weights: &LockedMatrix<f32>) -> Matrix<isize> {
+/// Given contact probability and disease characteristics,
+/// calculates the number of timesteps to infection
+pub fn contact_prob_to_timespan(p: f32, disease: &Disease, target_immunity: f32) -> isize {
+    for delay in 1..(disease.infection_length + 1) {
+        // Pr = contact * transmit * shed * (1 - immunity)
+        let prob_inf = p * disease.transmission_rate * (*disease.shedding_fun)((disease.infection_length - delay + 1) as isize) * (1.0 - target_immunity);
+        if random::<f32>() < prob_inf {
+            return delay as isize
+        }
+    }
+    -1
+}
+
+/// weights = probability of meeting at a given timestep
+/// output elements = number of timesteps until row meets column
+/// Sampling negative binomial distribution in same manner as random_negative_binomial() in
+/// https://github.com/numpy/numpy/blob/master/numpy/random/src/distributions/distributions.c
+pub fn deterministic_contact_weights(weights: &LockedMatrix<f32>) -> Matrix<isize> {
     let mut rng = thread_rng();
     match weights {
         LockedMatrix::Dense(m) => {
@@ -352,5 +388,39 @@ impl Graph {
                 InfectionStatus::Infected(_) => true,
                 _ => false
             }).count()
+    }
+
+    pub fn deterministic_infection_weights(&self, disease: &Disease) -> Matrix<isize> {
+        match &self.weights {
+            Matrix::Dense(m) => {
+                let m = m.lock().unwrap();
+                let mut determ_weights = Array2::zeros((m.shape()[0], m.shape()[1]));
+                for (idx, p) in m.indexed_iter() {
+                    let immunity = match self.nodes[idx.1].infections[0] {
+                        InfectionStatus::NotInfected(i) => i,
+                        InfectionStatus::Infected(_) => 1.0
+                    };
+                    determ_weights[idx] = contact_prob_to_timespan(*p, disease, immunity);
+                }
+                Matrix::Dense(Mutex::new(Arc::new(determ_weights)))
+            },
+            Matrix::Sparse(sm) => {
+                let sm = sm.lock().unwrap();
+                let mut determ_weights = CsrMatrix::new(sm.rows, sm.columns);
+                for i in 0..sm.rows {
+                    determ_weights.cum_row_indexes.push(determ_weights.values.len());
+                    for j in sm.cum_row_indexes[i]..sm.cum_row_indexes[i+1] {
+                        determ_weights.column_indexes.push(sm.column_indexes[j]);
+                        let immunity = match self.nodes[sm.column_indexes[j]].infections[0] {
+                            InfectionStatus::NotInfected(i) => i,
+                            InfectionStatus::Infected(_) => 1.0
+                        };
+                        determ_weights.values.push(contact_prob_to_timespan(sm.values[j], disease, immunity));
+                    }
+                }
+                determ_weights.cum_row_indexes.push(determ_weights.values.len());
+                Matrix::Sparse(Mutex::new(Arc::new(determ_weights)))
+            }
+        }
     }
 }
