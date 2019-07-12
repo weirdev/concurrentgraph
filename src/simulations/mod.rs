@@ -260,9 +260,6 @@ pub fn simulate_basic_mat_bfs_cpu(graph: &mut Graph, steps: usize, diseases: &[&
 }
 
 pub fn simulate_basic_mat_bfs_gpu(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
-
-    let determ_weights = graph.deterministic_infection_weights(diseases[0]);
-
     let determ_weights = match &graph.weights {
         Matrix::Dense(_) => panic!("not implemented"),
         Matrix::Sparse(sm) => {
@@ -276,9 +273,9 @@ pub fn simulate_basic_mat_bfs_gpu(graph: &mut Graph, steps: usize, diseases: &[&
                 InfectionStatus::Infected(_) => 1.0,
                 InfectionStatus::NotInfected(immun) => immun
             }).collect();
-            
+            println!("precalc");
             let determ_w_vals = graph_deterministic_weights_gpu_safe(mat_ptrs, sm.rows, sm.values.len(), immunities, shedding_curve, diseases[0].infection_length, diseases[0].transmission_rate);
-        
+            println!("calcab");
             let mut determ_weights_m: CsrMatrix<isize> = CsrMatrix::new(sm.rows, sm.columns);
             determ_weights_m.cum_row_indexes = sm.cum_row_indexes.clone();
             determ_weights_m.column_indexes = sm.column_indexes.clone();

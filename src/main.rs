@@ -208,16 +208,14 @@ fn main() -> io::Result<()> {
     /*
     println!("Sparsity factor 0.001");
     println!("10_000 nodes, 1_000 steps");
-    */
     test_sparse_stochastic(10_000, 1, 0.001, 1_000, &flu, MatMulFunction::GPU)?;
-    /*
     println!("30_000 nodes, 100 steps");
     test_sparse_stochastic(30_000, 1, 0.001, 100, &flu, MatMulFunction::GPU)?;
     println!("100_000 nodes, 10 steps");
     test_sparse_stochastic(100_000, 1, 0.001, 10, &flu, MatMulFunction::GPU)?;
     */
     
-    //test_basic_deterministic(&flu)?;
+    test_basic_deterministic(&flu)?;
 
     //test_basic_deterministic(&flu)?;
     //mat_mul_test1(&flu)?;
