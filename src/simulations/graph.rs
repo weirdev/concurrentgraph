@@ -77,8 +77,15 @@ impl<T> CsrMatrix<T>
             for j in 0..mat.shape()[1] {
                 if mat[(i, j)] <= T::zero() {
                     sparse_mat.column_indexes.push(j);
-                    sparse_mat.values.push(mat[(i, j)])
+                    sparse_mat.values.push(mat[(i, j)]);
                 }
+            }
+            let vals_added = sparse_mat.values.len() - sparse_mat.cum_row_indexes[0];
+            let mut cur_col = sparse_mat.column_indexes[sparse_mat.values.len()-1];
+            for _ in 0..((0.05*((sparse_mat.values.len() - sparse_mat.cum_row_indexes[0]) as f64)) as usize) {
+                sparse_mat.column_indexes.push(cur_col);
+                sparse_mat.values.push(T::zero());
+                cur_col += 1;
             }
         }
         sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
@@ -137,6 +144,16 @@ impl CsrMatrix<f32> {
             cum_row_indexes: self.cum_row_indexes.as_ptr(),
             column_indexes: self.column_indexes.as_ptr(),
             values: self.values.as_ptr()
+        }
+    }
+
+    pub fn perturb_row_edges(&mut self, row: usize) {
+        for v in &mut self.values[self.cum_row_indexes[row]..self.cum_row_indexes[row+1]] {
+            if random::<f32>() < 0.1 {
+                *v = 0.0;
+            } else if random::<f32>() < 0.2 {
+                 *v = random::<f32>();
+            }
         }
     }
 }
