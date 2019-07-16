@@ -155,7 +155,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
             InfectionStatus::Infected(1) => {
                 n.infections[0] = InfectionStatus::NotInfected(1.0);
                 if random::<f32>() < diseases[0].mortality_rate {
-                    println!("Quarantined patient died");
+                    //println!("Quarantined patient died");
                 }
             },
             InfectionStatus::Infected(t) => n.infections[0] = InfectionStatus::Infected(t-1),
