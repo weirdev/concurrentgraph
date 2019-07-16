@@ -237,8 +237,8 @@ fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
 }
 
 fn compare_stochastic_deterministic(disease: &Disease, iters: usize) -> io::Result<()> {
-    let community: Vec<Node> = (0..50).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
-    let communities: Vec<Vec<Node>> = (0..10).map(|_| community.clone()).collect();
+    let community: Vec<Node> = (0..100).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
+    let communities: Vec<Vec<Node>> = (0..100).map(|_| community.clone()).collect();
     let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.01, 0.1);
 
     let steps = 2000;
