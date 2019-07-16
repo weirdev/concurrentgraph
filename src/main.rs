@@ -269,7 +269,7 @@ fn main() -> io::Result<()> {
 
     //mat_mul_test3(&flu, 100_000, 3, 4, 0.01)?;
 
-    test_hospital_graph_mat_mul(1000);
+    test_hospital_graph_mat_mul(10000);
 
     Ok(())
 }
