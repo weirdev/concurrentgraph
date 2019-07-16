@@ -224,7 +224,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
     }
 }
 
-pub fn simulate_basic_mat_bfs_cpu(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
+pub fn simulate_basic_mat_bfs_cpu(graph: &Graph, steps: usize, diseases: &[&Disease]) {
     let start_time = SystemTime::now();
     let mut determ_weights = match graph.deterministic_infection_weights(diseases[0]) {
         Matrix::Dense(_) => panic!("not implemented"),
@@ -262,7 +262,7 @@ pub fn simulate_basic_mat_bfs_cpu(graph: &mut Graph, steps: usize, diseases: &[&
     println!("{} infections", infection_count);
 }
 
-pub fn simulate_basic_mat_bfs_gpu(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
+pub fn simulate_basic_mat_bfs_gpu(graph: &Graph, steps: usize, diseases: &[&Disease]) {
     let determ_weights = match &graph.weights {
         Matrix::Dense(_) => panic!("not implemented"),
         Matrix::Sparse(sm) => {
