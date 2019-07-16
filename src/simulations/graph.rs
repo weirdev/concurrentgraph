@@ -12,6 +12,9 @@ use rand::distributions::{Poisson, Gamma};
 
 use concurrentgraph_cuda_sys::{CsrFloatMatrixPtrs, CsrIntMatrixPtrs};
 
+use std::fs::File;
+use std::io::prelude::*;
+
 #[derive(Clone)]
 #[derive(Copy)]
 #[derive(Debug)]
@@ -121,6 +124,26 @@ impl<T> CsrMatrix<T>
         sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
         sparse_mat
     }
+
+    pub fn randomize_rows(&self) -> CsrMatrix<T> {
+        let mut row_sizes: Vec<usize> = Vec::with_capacity(self.rows);
+        for i in 0..self.rows {
+            row_sizes.push(self.cum_row_indexes[i+1]-self.cum_row_indexes[i]);
+        }
+        let mut sorted_sizes: Vec<(usize, usize)> = row_sizes.into_iter().enumerate().collect();
+        
+        thread_rng().shuffle(sorted_sizes.as_mut_slice());
+
+        let mut sparse_mat = CsrMatrix::new(self.rows, self.columns);
+        for i in 0..self.rows {
+            sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
+            let row_to_copy = sorted_sizes[i].0;
+            sparse_mat.column_indexes.extend_from_slice(&self.column_indexes[self.cum_row_indexes[row_to_copy]..self.cum_row_indexes[row_to_copy+1]]);
+            sparse_mat.values.extend_from_slice(&self.values[self.cum_row_indexes[row_to_copy]..self.cum_row_indexes[row_to_copy+1]]);
+        }
+        sparse_mat.cum_row_indexes.push(sparse_mat.values.len());
+        sparse_mat
+    }
 }
 
 impl CsrMatrix<f32> {
@@ -136,6 +159,29 @@ impl CsrMatrix<f32> {
             }
         }
         sp_mat.cum_row_indexes.push(sp_mat.values.len());
+        sp_mat
+    }
+
+    pub fn read_from_adj_list_file(file: &str) -> CsrMatrix<f32> {
+        let mut file = File::open(file).unwrap();
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).unwrap();
+        
+        let mut sp_mat = CsrMatrix::new(0, 0);
+        let mut nodes = 0;
+        for line in contents.split("\n").skip(3) {
+            if line.len() != 0 {
+                sp_mat.cum_row_indexes.push(sp_mat.values.len());
+                for conn in line.split(" ").skip(1) {
+                    sp_mat.column_indexes.push(conn.parse::<usize>().unwrap() - 1);
+                    sp_mat.values.push(0.5);
+                }
+                nodes += 1;
+            }
+        }
+        sp_mat.cum_row_indexes.push(sp_mat.values.len());
+        sp_mat.rows = nodes;
+        sp_mat.columns = nodes;
         sp_mat
     }
 

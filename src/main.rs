@@ -194,6 +194,48 @@ fn mat_mul_test3(disease: &Disease, size: usize, iters: usize, gpu_restriction_f
     Ok(())
 }
 
+fn test_hospital_graph_mat_mul(iters: usize) {
+    let sp_mat = CsrMatrix::read_from_adj_list_file("observedGraph.adjlist");
+    println!("loaded");
+    let mut vector: Vec<f32> = (0..sp_mat.rows).map(|_| 0.0).collect();
+    vector[40] = 0.9;
+
+    let sp_mat = sp_mat.randomize_rows();
+
+    let gpu_alloc = npmmv_csr_gpu_allocate_safe(sp_mat.rows, sp_mat.columns, sp_mat.values.len());
+    npmmv_gpu_set_csr_matrix_safe(sp_mat.get_ptrs(), gpu_alloc, sp_mat.rows, sp_mat.values.len());
+
+    let start_time = SystemTime::now();
+    npmmv_gpu_set_in_vector_safe(vector.clone(), NpmmvAllocations::Sparse(gpu_alloc));
+    for _ in 0..iters {
+        npmmv_csr_gpu_compute_safe(gpu_alloc, sp_mat.rows, 1);
+    }
+    let res = npmmv_gpu_get_out_vector_safe(NpmmvAllocations::Sparse(gpu_alloc), sp_mat.rows);
+    npmmv_csr_gpu_free_safe(gpu_alloc);
+    
+    let runtime = SystemTime::now().duration_since(start_time)
+        .expect("Time went backwards");
+    println!("Ran nonordered rows in {} secs", runtime.as_secs());
+
+
+    let sp_mat = sp_mat.sort_rows();
+
+    let gpu_alloc = npmmv_csr_gpu_allocate_safe(sp_mat.rows, sp_mat.columns, sp_mat.values.len());
+    npmmv_gpu_set_csr_matrix_safe(sp_mat.get_ptrs(), gpu_alloc, sp_mat.rows, sp_mat.values.len());
+
+    let start_time = SystemTime::now();
+    npmmv_gpu_set_in_vector_safe(vector.clone(), NpmmvAllocations::Sparse(gpu_alloc));
+    for _ in 0..iters {
+        npmmv_csr_gpu_compute_safe(gpu_alloc, sp_mat.rows, 1);
+    }
+    let res = npmmv_gpu_get_out_vector_safe(NpmmvAllocations::Sparse(gpu_alloc), sp_mat.rows);
+    npmmv_csr_gpu_free_safe(gpu_alloc);
+    
+    let runtime = SystemTime::now().duration_since(start_time)
+        .expect("Time went backwards");
+    println!("Ran sorted rows in {} secs", runtime.as_secs());
+}
+
 fn main() -> io::Result<()> {
     let flu = Disease {
         name: "flu",
@@ -219,13 +261,15 @@ fn main() -> io::Result<()> {
     test_sparse_stochastic(100_000, 1, 0.001, 10, &flu, MatMulFunction::GPU)?;
     */
     
-    test_basic_deterministic(&flu)?;
+    //test_basic_deterministic(&flu)?;
 
     //test_basic_deterministic(&flu)?;
     //mat_mul_test1(&flu)?;
     //mat_mul_test2(&flu)?;
 
     //mat_mul_test3(&flu, 100_000, 3, 4, 0.01)?;
+
+    test_hospital_graph_mat_mul(1000);
 
     Ok(())
 }
