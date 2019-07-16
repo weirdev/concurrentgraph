@@ -169,16 +169,27 @@ impl CsrMatrix<f32> {
         
         let mut sp_mat = CsrMatrix::new(0, 0);
         let mut nodes = 0;
+        let mut nodes_reffed = 0;
         for line in contents.split("\n").skip(3) {
             if line.len() != 0 {
                 sp_mat.cum_row_indexes.push(sp_mat.values.len());
                 for conn in line.split(" ").skip(1) {
-                    sp_mat.column_indexes.push(conn.parse::<usize>().unwrap() - 1);
+                    let col = conn.parse::<usize>().unwrap() - 1;
+                    nodes_reffed = nodes_reffed.max(col+1);
+                    sp_mat.column_indexes.push(col);
                     sp_mat.values.push(0.5);
                 }
                 nodes += 1;
             }
         }
+
+        if nodes < nodes_reffed {
+            for missingnode in nodes..nodes_reffed {
+                sp_mat.cum_row_indexes.push(sp_mat.values.len());
+                nodes += 1;
+            }
+        }
+
         sp_mat.cum_row_indexes.push(sp_mat.values.len());
         sp_mat.rows = nodes;
         sp_mat.columns = nodes;
