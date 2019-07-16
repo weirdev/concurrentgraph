@@ -194,9 +194,9 @@ fn mat_mul_test3(disease: &Disease, size: usize, iters: usize, gpu_restriction_f
     Ok(())
 }
 
-fn test_hospital_graph_mat_mul(iters: usize) {
-    let sp_mat = CsrMatrix::read_from_adj_list_file("observedGraph.adjlist");
-    println!("loaded");
+fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
+    let sp_mat = CsrMatrix::read_from_adj_list_file(file);
+    println!("loaded {}", file);
     let mut vector: Vec<f32> = (0..sp_mat.rows).map(|_| 0.0).collect();
     vector[40] = 0.9;
 
@@ -269,7 +269,9 @@ fn main() -> io::Result<()> {
 
     //mat_mul_test3(&flu, 100_000, 3, 4, 0.01)?;
 
-    test_hospital_graph_mat_mul(10000);
+    test_hospital_graph_mat_mul("obsSparse5.adjlist", 10000);
+    test_hospital_graph_mat_mul("obsMod5.adjlist", 5000);
+    test_hospital_graph_mat_mul("obsDense5.adjlist", 1000);
 
     Ok(())
 }
