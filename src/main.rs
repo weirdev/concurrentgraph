@@ -237,7 +237,7 @@ fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
 }
 
 fn timeSSSP(file: &str, iters: usize) {
-    let sp_mat = CsrMatrix::new_with_conn_prob(10000, 10000, 0.01); //CsrMatrix::read_from_adj_list_file(file);
+    let sp_mat = CsrMatrix::new_with_conn_prob(100000, 100000, 0.1); //CsrMatrix::read_from_adj_list_file(file);
     println!("loaded {}", file);
     
     let start_time = SystemTime::now();
