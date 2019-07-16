@@ -296,7 +296,7 @@ fn main() -> io::Result<()> {
     };
 
     //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
-    test_basic_stochastic(&flu, MatMulFunction::GPU)?;
+    //test_basic_stochastic(&flu, MatMulFunction::GPU)?;
     /*
     println!("Sparsity factor 0.001");
     println!("10_000 nodes, 1_000 steps");
@@ -315,7 +315,7 @@ fn main() -> io::Result<()> {
     //mat_mul_test1(&flu)?;
     //mat_mul_test2(&flu)?;
 
-    mat_mul_test3(&flu, 10_000, 20, 1, 0.1)?;
+    mat_mul_test3(&flu, 10_000, 20, 1, 0.01)?;
 
     //test_hospital_graph_mat_mul("obsSparse5.adjlist", 10000);
     //test_hospital_graph_mat_mul("obsMod5.adjlist", 5000);
