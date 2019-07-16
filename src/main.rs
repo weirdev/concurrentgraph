@@ -18,11 +18,13 @@ mod simulations;
 
 use simulations::*;
 
-fn test_basic_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
+fn test_basic_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction, iters: usize) -> io::Result<()> {
     let mut graph = Graph::new_sim_graph(10_000, 0.3, disease, false);
     let start_time = SystemTime::now();
     //graph.simulate_basic_looped_stochastic(200, &[disease]);
-    simulate_basic_mat_stochastic(&mut graph, 200, &[disease], mat_mul_fun);
+    for _ in 0..iters {
+        simulate_basic_mat_stochastic(&mut graph, 200, &[disease], mat_mul_fun);
+    }
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     println!("{} dead", graph.dead_count());
@@ -51,9 +53,9 @@ fn test_sparse_stochastic(community_count: usize, community_size: usize, inter_c
     simulate_basic_mat_stochastic(&mut graph, steps, &[disease], mat_mul_fun);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
+    println!("Ran in {} secs", runtime.as_secs());
     println!("{} dead", graph.dead_count());
     println!("{} infected", graph.infected_count(0));
-    println!("Ran in {} secs", runtime.as_secs());
 
     Ok(())
 }
@@ -293,13 +295,13 @@ fn main() -> io::Result<()> {
         shedding_fun: Box::new(|d| if d > 0 {1.0 / d as f32} else {0.0})
     };
 
-    test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
-    test_basic_stochastic(&flu, MatMulFunction::MultiThreaded)?;
+    //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
+    test_basic_stochastic(&flu, MatMulFunction::GPU, 10)?;
     /*
     println!("Sparsity factor 0.001");
     println!("10_000 nodes, 1_000 steps");
     */
-    //test_sparse_stochastic(10_000, 1, 0.001, 1_000, &flu, MatMulFunction::GPU)?;
+    test_sparse_stochastic(10_000, 1, 0.1, 10, &flu, MatMulFunction::GPU)?;
     /*
     println!("30_000 nodes, 100 steps");
     test_sparse_stochastic(30_000, 1, 0.001, 100, &flu, MatMulFunction::GPU)?;
@@ -313,7 +315,7 @@ fn main() -> io::Result<()> {
     //mat_mul_test1(&flu)?;
     //mat_mul_test2(&flu)?;
 
-    //mat_mul_test3(&flu, 100_000, 3, 4, 0.01)?;
+    //mat_mul_test3(&flu, 10_000, 100, 1, 0.1)?;
 
     //test_hospital_graph_mat_mul("obsSparse5.adjlist", 10000);
     //test_hospital_graph_mat_mul("obsMod5.adjlist", 5000);
