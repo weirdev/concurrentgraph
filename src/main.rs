@@ -236,6 +236,19 @@ fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
     println!("Ran sorted rows in {} secs", runtime.as_secs());
 }
 
+fn timeSSSP(file: &str, iters: usize) {
+    let sp_mat = CsrMatrix::read_from_adj_list_file(file);
+    println!("loaded {}", file);
+    
+    let start_time = SystemTime::now();
+    for _ in 0..iters {
+        sssp_safe(sp_mat.get_ptrs(), sp_mat.rows, sp_mat.values.len());
+    }
+    let runtime = SystemTime::now().duration_since(start_time)
+        .expect("Time went backwards");
+    println!("Ran sssp in {} secs {} iters", runtime.as_secs(), iters);
+}
+
 fn compare_stochastic_deterministic(disease: &Disease, iters: usize) -> io::Result<()> {
     let community: Vec<Node> = (0..100).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
     let communities: Vec<Vec<Node>> = (0..100).map(|_| community.clone()).collect();
@@ -306,7 +319,9 @@ fn main() -> io::Result<()> {
     //test_hospital_graph_mat_mul("obsMod5.adjlist", 5000);
     //test_hospital_graph_mat_mul("obsDense5.adjlist", 1000);
 
-    compare_stochastic_deterministic(&flu, 1);
+    //compare_stochastic_deterministic(&flu, 1);
+
+    timeSSSP("obsSparse5.adjlist", 1000);
 
     Ok(())
 }
