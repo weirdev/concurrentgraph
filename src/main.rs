@@ -18,13 +18,13 @@ mod simulations;
 
 use simulations::*;
 
-fn test_basic_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction, iters: usize) -> io::Result<()> {
+fn test_basic_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
     let mut graph = Graph::new_sim_graph(10_000, 0.3, disease, false);
     let start_time = SystemTime::now();
     //graph.simulate_basic_looped_stochastic(200, &[disease]);
-    for _ in 0..iters {
+    //for _ in 0..iters {
         simulate_basic_mat_stochastic(&mut graph, 200, &[disease], mat_mul_fun);
-    }
+    //}
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     println!("{} dead", graph.dead_count());
@@ -296,12 +296,12 @@ fn main() -> io::Result<()> {
     };
 
     //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
-    test_basic_stochastic(&flu, MatMulFunction::GPU, 10)?;
+    test_basic_stochastic(&flu, MatMulFunction::GPU)?;
     /*
     println!("Sparsity factor 0.001");
     println!("10_000 nodes, 1_000 steps");
     */
-    test_sparse_stochastic(10_000, 1, 0.1, 10, &flu, MatMulFunction::GPU)?;
+    test_sparse_stochastic(10_000, 1, 0.1, 2000, &flu, MatMulFunction::GPU)?;
     /*
     println!("30_000 nodes, 100 steps");
     test_sparse_stochastic(30_000, 1, 0.001, 100, &flu, MatMulFunction::GPU)?;
