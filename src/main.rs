@@ -236,7 +236,7 @@ fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
     println!("Ran sorted rows in {} secs", runtime.as_secs());
 }
 
-fn compare_stochastic_deterministic(disease: &Disease) -> io::Result<()> {
+fn compare_stochastic_deterministic(disease: &Disease, iters: usize) -> io::Result<()> {
     let community: Vec<Node> = (0..50).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
     let communities: Vec<Vec<Node>> = (0..10).map(|_| community.clone()).collect();
     let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.01, 0.1);
@@ -251,13 +251,17 @@ fn compare_stochastic_deterministic(disease: &Disease) -> io::Result<()> {
     */
 
     let start_time = SystemTime::now();
-    simulate_basic_mat_stochastic(&mut graph, steps, &[disease], MatMulFunction::GPU);
+    for _ in 0..iters {
+        simulate_basic_mat_stochastic(&mut graph, steps, &[disease], MatMulFunction::GPU);
+    }
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     println!("total GPU stoch Ran in {} secs for {} steps", runtime.as_secs(), steps);
 
     let start_time = SystemTime::now();
-    simulate_basic_mat_bfs_cpu(&graph, steps, &[disease]);
+    for _ in 0..iters {
+        simulate_basic_mat_bfs_cpu(&graph, steps, &[disease]);
+    }
     //graph.simulate_basic_looped_deterministic_shedding_incorrect(200, &[disease]);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
@@ -302,7 +306,7 @@ fn main() -> io::Result<()> {
     //test_hospital_graph_mat_mul("obsMod5.adjlist", 5000);
     //test_hospital_graph_mat_mul("obsDense5.adjlist", 1000);
 
-    compare_stochastic_deterministic(&flu);
+    compare_stochastic_deterministic(&flu, 1000);
 
     Ok(())
 }
