@@ -242,11 +242,14 @@ fn compare_stochastic_deterministic(disease: &Disease) -> io::Result<()> {
     let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.01, 0.1);
 
     let steps = 2000;
+    /*
     let start_time = SystemTime::now();
     simulate_basic_mat_stochastic(&mut graph, steps, &[disease], MatMulFunction::SingleThreaded);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     println!("total CPU st stoch Ran in {} secs for {} steps", runtime.as_secs(), steps);
+    */
+
     let start_time = SystemTime::now();
     simulate_basic_mat_stochastic(&mut graph, steps, &[disease], MatMulFunction::GPU);
     let runtime = SystemTime::now().duration_since(start_time)
