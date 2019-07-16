@@ -293,8 +293,8 @@ fn main() -> io::Result<()> {
         shedding_fun: Box::new(|d| if d > 0 {1.0 / d as f32} else {0.0})
     };
 
-    //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
-    //test_basic_stochastic(&flu, MatMulFunction::GPU)?;
+    test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
+    test_basic_stochastic(&flu, MatMulFunction::MultiThreaded)?;
     /*
     println!("Sparsity factor 0.001");
     println!("10_000 nodes, 1_000 steps");
@@ -321,7 +321,7 @@ fn main() -> io::Result<()> {
 
     //compare_stochastic_deterministic(&flu, 1);
 
-    timeSSSP("obsSparse5.adjlist", 1000);
+    //timeSSSP("obsSparse5.adjlist", 1000);
 
     Ok(())
 }
