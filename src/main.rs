@@ -241,7 +241,7 @@ fn compare_stochastic_deterministic(disease: &Disease, iters: usize) -> io::Resu
     let communities: Vec<Vec<Node>> = (0..100).map(|_| community.clone()).collect();
     let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.01, 0.1);
 
-    let steps = 2000;
+    let steps = 200;
     /*
     let start_time = SystemTime::now();
     simulate_basic_mat_stochastic(&mut graph, steps, &[disease], MatMulFunction::SingleThreaded);
@@ -306,7 +306,7 @@ fn main() -> io::Result<()> {
     //test_hospital_graph_mat_mul("obsMod5.adjlist", 5000);
     //test_hospital_graph_mat_mul("obsDense5.adjlist", 1000);
 
-    compare_stochastic_deterministic(&flu, 1000);
+    compare_stochastic_deterministic(&flu, 1);
 
     Ok(())
 }
