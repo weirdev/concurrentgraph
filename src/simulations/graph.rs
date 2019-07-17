@@ -1,12 +1,10 @@
-use std::io;
+//use std::io;
 use std::thread;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::MutexGuard;
-use std::time::{SystemTime, UNIX_EPOCH};
 use num_traits::identities::Zero;
 
-use ndarray::{Array, Array2, Axis};
+use ndarray::Array2;
 use rand::prelude::*;
 use rand::distributions::{Poisson, Gamma};
 
@@ -83,7 +81,7 @@ impl<T> CsrMatrix<T>
                     sparse_mat.values.push(mat[(i, j)]);
                 }
             }
-            let vals_added = sparse_mat.values.len() - sparse_mat.cum_row_indexes[0];
+            
             let mut cur_col = sparse_mat.column_indexes[sparse_mat.values.len()-1];
             for _ in 0..((0.05*((sparse_mat.values.len() - sparse_mat.cum_row_indexes[0]) as f64)) as usize) {
                 sparse_mat.column_indexes.push(cur_col);
@@ -132,7 +130,7 @@ impl<T> CsrMatrix<T>
         }
         let mut sorted_sizes: Vec<(usize, usize)> = row_sizes.into_iter().enumerate().collect();
         
-        thread_rng().shuffle(sorted_sizes.as_mut_slice());
+        sorted_sizes.as_mut_slice().shuffle(&mut thread_rng());
 
         let mut sparse_mat = CsrMatrix::new(self.rows, self.columns);
         for i in 0..self.rows {
@@ -149,7 +147,7 @@ impl<T> CsrMatrix<T>
 impl CsrMatrix<f32> {
     pub fn new_with_conn_prob(rows: usize, columns: usize, conn_prob: f32) -> CsrMatrix<f32> {
         let mut sp_mat = CsrMatrix::new(rows, columns);
-        for i in 0..rows {
+        for _ in 0..rows {
             sp_mat.cum_row_indexes.push(sp_mat.values.len());
             for j in 0..columns {
                 if random::<f32>() < conn_prob {
@@ -184,7 +182,7 @@ impl CsrMatrix<f32> {
         }
 
         if nodes < nodes_reffed {
-            for missingnode in nodes..nodes_reffed {
+            for _missingnode in nodes..nodes_reffed {
                 sp_mat.cum_row_indexes.push(sp_mat.values.len());
                 nodes += 1;
             }

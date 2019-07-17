@@ -1,10 +1,12 @@
+#![allow(dead_code)]
 use std::io;
 use std::sync::{Arc, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::SystemTime;
 use std::f32::EPSILON;
 
 use rand::prelude::*;
 
+#[allow(unused_imports)]
 #[macro_use(array)]
 extern crate ndarray;
 
@@ -188,7 +190,7 @@ fn mat_mul_test2(disease: &Disease) -> io::Result<()> {
     Ok(())
 }
 
-fn mat_mul_test3(disease: &Disease, size: usize, iters: usize, gpu_restriction_factor: usize, sparsity: f32) -> io::Result<()> {
+fn mat_mul_test3(size: usize, iters: usize, gpu_restriction_factor: usize, sparsity: f32) -> io::Result<()> {
     let mat = Matrix::Sparse(Mutex::new(Arc::new(CsrMatrix::new_with_conn_prob(size, size, sparsity))));
     let vector: Vec<f32> = (0..size).map(|_| random::<f32>()).collect();
     test_mat_mul(iters, &mat, vector.clone(), MatMulFunction::GPU, gpu_restriction_factor)?;
@@ -212,7 +214,7 @@ fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
     for _ in 0..iters {
         npmmv_csr_gpu_compute_safe(gpu_alloc, sp_mat.rows, 1);
     }
-    let res = npmmv_gpu_get_out_vector_safe(NpmmvAllocations::Sparse(gpu_alloc), sp_mat.rows);
+    let _res = npmmv_gpu_get_out_vector_safe(NpmmvAllocations::Sparse(gpu_alloc), sp_mat.rows);
     npmmv_csr_gpu_free_safe(gpu_alloc);
     
     let runtime = SystemTime::now().duration_since(start_time)
@@ -230,7 +232,7 @@ fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
     for _ in 0..iters {
         npmmv_csr_gpu_compute_safe(gpu_alloc, sp_mat.rows, 1);
     }
-    let res = npmmv_gpu_get_out_vector_safe(NpmmvAllocations::Sparse(gpu_alloc), sp_mat.rows);
+    let _res = npmmv_gpu_get_out_vector_safe(NpmmvAllocations::Sparse(gpu_alloc), sp_mat.rows);
     npmmv_csr_gpu_free_safe(gpu_alloc);
     
     let runtime = SystemTime::now().duration_since(start_time)
@@ -238,7 +240,7 @@ fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
     println!("Ran sorted rows in {} secs", runtime.as_secs());
 }
 
-fn timeSSSP(file: &str, iters: usize) {
+fn time_sssp(file: &str, iters: usize) {
     let sp_mat = CsrMatrix::new_with_conn_prob(100000, 100000, 0.1); //CsrMatrix::read_from_adj_list_file(file);
     println!("loaded {}", file);
     
@@ -315,7 +317,7 @@ fn main() -> io::Result<()> {
     //mat_mul_test1(&flu)?;
     //mat_mul_test2(&flu)?;
 
-    mat_mul_test3(&flu, 10_000, 20, 1, 0.01)?;
+    mat_mul_test3(10_000, 20, 1, 0.01)?;
 
     //test_hospital_graph_mat_mul("obsSparse5.adjlist", 10000);
     //test_hospital_graph_mat_mul("obsMod5.adjlist", 5000);
@@ -323,7 +325,7 @@ fn main() -> io::Result<()> {
 
     //compare_stochastic_deterministic(&flu, 1);
 
-    //timeSSSP("obsSparse5.adjlist", 1000);
+    //time_sssp("obsSparse5.adjlist", 1000);
 
     Ok(())
 }

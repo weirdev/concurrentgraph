@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use rand::prelude::*;
 use std::time::SystemTime;
 
-use ndarray::{Array, Array2, Axis};
+use ndarray::Array2;
 
 use concurrentgraph_cuda_sys::*;
 
@@ -14,10 +14,10 @@ pub fn simulate_basic_looped_stochastic(graph: &mut Graph, steps: usize, disease
         Matrix::Dense(m) => m.lock().unwrap(),
         Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
     };
-    for ts in 0..steps {
+    for _ts in 0..steps {
         let mut new_nodes: Vec<Node> = Vec::new();
         // For each node and its outgoing edges
-        for (nodenum, (node, adj_weights)) in graph.nodes.iter().zip(mat.outer_iter()).enumerate() {
+        for (_, (node, adj_weights)) in graph.nodes.iter().zip(mat.outer_iter()).enumerate() {
             let new_node = match node.status {
                 // Node is asymptomatic (just means alive for basic simulation),
                 // check if it gets infected by a disease, or dies from a disease
@@ -109,7 +109,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
 
     let mut quarantined_nodes: Vec<Node> = Vec::new();
 
-    for ts in 0..steps {
+    for _ts in 0..steps {
         let node_transmitivity: Vec<f32> = graph.nodes.iter().map(|n| match n.status {
             AgentStatus::Asymptomatic => match n.infections[0] {
                 InfectionStatus::Infected(t) => 
@@ -239,7 +239,7 @@ pub fn simulate_basic_mat_bfs_cpu(graph: &Graph, steps: usize, diseases: &[&Dise
         InfectionStatus::NotInfected(_) => 0
     }).collect();
     let start_time = SystemTime::now();
-    for ts in 0..steps {
+    for _ts in 0..steps {
         for i in 0..infections.len() {
             if infections[i] == 1 {
                 for c in determ_weights.cum_row_indexes[i]..determ_weights.cum_row_indexes[i+1] {
@@ -318,7 +318,7 @@ pub fn simulate_basic_mat_bfs_gpu(graph: &Graph, steps: usize, diseases: &[&Dise
     };
 
     let start_time = SystemTime::now();
-    for ts in 0..steps {
+    for _ts in 0..steps {
         mat_allocs = match mat_allocs {
             LockedMatrixAndGpuAllocs::Dense(_) => panic!("Dense operations not implemented yet"),
             LockedMatrixAndGpuAllocs::Sparse(mga) => {
@@ -357,7 +357,7 @@ pub fn simulate_basic_looped_deterministic(graph: &mut Graph, steps: usize, dise
         let mut new_nodes: Vec<Node> = Vec::new();
         // For each node and its outgoing edges
         let nodes = &mut graph.nodes;
-        for (nodenum, (node, ref mut adj_weights)) in nodes.iter().zip(determ_weights.outer_iter_mut()).enumerate() {
+        for (_, (node, ref mut adj_weights)) in nodes.iter().zip(determ_weights.outer_iter_mut()).enumerate() {
             let new_node = match node.status {
                 // Node is asymptomatic (just means alive for basic simulation),
                 // check if it gets infected by a disease, or dies from a disease
@@ -425,7 +425,7 @@ pub fn simulate_basic_looped_deterministic(graph: &mut Graph, steps: usize, dise
 }
 
 pub fn simulate_simplistic_mat_deterministic(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
-    let mut mat = match &graph.weights {
+    let mat = match &graph.weights {
         Matrix::Dense(m) => m.lock().unwrap(),
         Matrix::Sparse(_) => panic!("Sparse matrices not implemented yet")
     };
@@ -519,7 +519,7 @@ pub fn simulate_basic_looped_deterministic_shedding_incorrect(graph: &mut Graph,
                             },
                             InfectionStatus::Infected(t) => InfectionStatus::Infected(t-1),
                             // Not infected, check for transmission
-                            InfectionStatus::NotInfected(immunity) => {
+                            InfectionStatus::NotInfected(_immunity) => {
                                 let incoming_infectors = adj_weights.into_iter().enumerate()
                                     .filter(|(_, w)| **w != -1)
                                     .filter_map(|(i, w)| match nodes[i].infections[didx] {
@@ -527,7 +527,7 @@ pub fn simulate_basic_looped_deterministic_shedding_incorrect(graph: &mut Graph,
                                         InfectionStatus::Infected(t) => Some((i, w, t))
                                     });
                                 
-                                let transmission = incoming_infectors.fold(false, |infection, (_, w, t)| {
+                                let transmission = incoming_infectors.fold(false, |infection, (_, w, _t)| {
                                         let mut inf = false;
                                         if *w == 0 {
                                             if shedding_time[nodenum] == 0 {
