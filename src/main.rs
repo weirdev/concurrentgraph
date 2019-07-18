@@ -204,8 +204,12 @@ fn mat_mul_test3(size: usize, iters: usize, gpu_restriction_factor: usize, spars
 }
 
 fn mat_mul_test4(iters: usize, disease: &Disease, mat_mul_fun: MatMulFunction) {
-    println!("{} iters, 10_000 size mat", iters);
-    random_mat_mul(iters, 10_000, &disease, mat_mul_fun, false).unwrap();
+    println!("{} iters, 5_000 size mat", iters*8);
+    random_mat_mul(iters*8, 5_000, &disease, mat_mul_fun, false).unwrap();
+    println!("{} iters, 10_000 size mat", iters*2);
+    random_mat_mul(iters*2, 10_000, &disease, mat_mul_fun, false).unwrap();
+    println!("{} iters, 15_000 size mat", iters);
+    random_mat_mul(iters, 15_000, &disease, mat_mul_fun, false).unwrap();
 }
 
 fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
@@ -309,7 +313,9 @@ fn main() -> io::Result<()> {
 
     //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
     //test_basic_stochastic(&flu, MatMulFunction::MultiThreaded)?;
+    println!("multi threaded");
     mat_mul_test4(5, &flu, MatMulFunction::MultiThreaded);
+    println!("single threaded");
     mat_mul_test4(5, &flu, MatMulFunction::SingleThreaded);
     /*
     println!("Sparsity factor 0.001");

@@ -1,5 +1,4 @@
 //use std::io;
-use std::thread;
 use std::sync::Arc;
 use std::sync::Mutex;
 use num_traits::identities::Zero;
@@ -44,6 +43,8 @@ pub struct Graph {
     pub weights: Matrix<f32>
 }
 
+#[derive(Clone)]
+#[derive(Copy)]
 pub enum MatMulFunction {
     SingleThreaded,
     MultiThreaded,
