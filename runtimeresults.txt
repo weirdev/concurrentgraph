@@ -433,3 +433,27 @@ sim 2000 iters, 10_000 size mat
 Ran in 4 secs
 sim 1000 iters, 15_000 size mat
 Ran in 3 secs
+
+multi threaded
+sim 1500 iters, 30_000 size mat
+Ran in 9 secs
+sim 1000 iters, 40_000 size mat
+Ran in 9 secs
+sim 500 iters, 50_000 size mat
+Ran in 6 seconds
+
+single threaded
+sim 1500 iters, 30_000 size mat
+Ran in 11 secs
+sim 1000 iters, 40_000 size mat
+Ran in 13 secs
+sim 500 iters, 50_000 size mat
+Ran in 10 secs
+
+gpu
+sim 3000 iters, 30_000 size mat
+Ran in 21 secs
+sim 2000 iters, 40_000 size mat
+Ran in 18 secs
+sim 1000 iters, 50_000 size mat
+Ran in 11 secs

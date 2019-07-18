@@ -260,7 +260,7 @@ fn mat_mul_test5(iters: usize, mat_mul_fun: MatMulFunction, sparsity: f32) {
 
 fn mat_mul_test6(iters: usize, mat_mul_fun: MatMulFunction, sparsity: f32) {
     println!("{} iters, 30_000 size mat", iters*3);
-    random_sparse_mat_mul(iters*8, 30_000, mat_mul_fun, sparsity).unwrap();
+    random_sparse_mat_mul(iters*3, 30_000, mat_mul_fun, sparsity).unwrap();
     println!("{} iters, 40_000 size mat", iters*2);
     random_sparse_mat_mul(iters*2, 40_000, mat_mul_fun, sparsity).unwrap();
     println!("{} iters, 50_000 size mat", iters);
@@ -455,15 +455,15 @@ fn main() -> io::Result<()> {
     println!("gpu");
     mat_mul_test6(1000, MatMulFunction::GPU, sparsity);
     
+    /*
     println!("sims");
     println!("multi threaded");
     sparse_sim2(500, MatMulFunction::MultiThreaded, sparsity, &flu);
     println!("single threaded");
     sparse_sim2(500, MatMulFunction::SingleThreaded, sparsity, &flu);
-    
     println!("gpu");
     sparse_sim2(1000, MatMulFunction::GPU, sparsity, &flu);
-
+    */
 
     
 
