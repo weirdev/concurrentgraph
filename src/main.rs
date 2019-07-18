@@ -16,6 +16,8 @@ extern crate rayon;
 
 extern crate concurrentgraph_cuda_sys;
 
+extern crate num_cpus;
+
 use concurrentgraph_cuda_sys::*;
 
 mod simulations;
@@ -117,7 +119,7 @@ fn test_mat_mul(iters: usize, matrix: &Matrix<f32>, vector: Vec<f32>, mat_mul_fu
                 MatMulFunction::MultiThreaded => {
                     (0..(iters-1)).for_each(|_| {generic_mat_vec_mult_multi_thread(mat.clone(), vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).expect("Run failed");});
                     generic_mat_vec_mult_multi_thread(mat.clone(), vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).expect("Run failed")
-                }, // TODO: this doesnt support computation iteration
+                },
                 MatMulFunction::SingleThreaded => negative_prob_multiply_dense_matrix_vector_cpu_safe(iters as isize, mat, vector.clone()).expect("Run failed"),
                 MatMulFunction::GPU => negative_prob_multiply_dense_matrix_vector_gpu_safe(iters as isize, mat, vector.clone()).expect("Run failed")
             }
@@ -136,7 +138,14 @@ fn test_mat_mul(iters: usize, matrix: &Matrix<f32>, vector: Vec<f32>, mat_mul_fu
                     npmmv_csr_gpu_free_safe(gpu_alloc);
                     res
                 },
-                _ => panic!("Sparse matrices not implemented on CPU yet")
+                MatMulFunction::MultiThreaded => {
+                    (0..(iters-1)).for_each(|_| {generic_csr_mat_vec_mult_multi_thread(sp_mat.clone(), vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).expect("Run failed");});
+                    generic_csr_mat_vec_mult_multi_thread(sp_mat.clone(), vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).expect("Run failed")
+                },
+                MatMulFunction::SingleThreaded => {
+                    (0..(iters-1)).for_each(|_| {generic_csr_mat_vec_mult_single_thread(sp_mat.clone(), vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).expect("Run failed");});
+                    generic_csr_mat_vec_mult_single_thread(sp_mat.clone(), vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).expect("Run failed")
+                }
             }
         }
     };

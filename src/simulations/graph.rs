@@ -267,12 +267,7 @@ pub fn generic_mat_vec_mult_multi_thread<'a, D>(mat: Arc<Array2<D>>, vector: Vec
         //let locked_result = Arc::new(Mutex::new(result));
         let arc_vector = Arc::new(vector);
 
-        let threads;
-        if mat.shape()[0] >= 64 {
-            threads = 64;
-        } else {
-            threads = 1;
-        }
+        let threads = num_cpus::get();
         let mut group_size = mat.shape()[0] / threads;
         if mat.shape()[0] % threads != 0 {
             group_size += 1;
@@ -301,11 +296,10 @@ pub fn generic_mat_vec_mult_multi_thread<'a, D>(mat: Arc<Array2<D>>, vector: Vec
     }
 }
 
-fn generic_mat_vec_mult_single_thread<'a, D>(mat_lock: &Mutex<Arc<Array2<D>>>, vector: Vec<D>,
+pub fn generic_mat_vec_mult_single_thread<'a, D>(mat: Arc<Array2<D>>, vector: Vec<D>,
         op1: Arc<(Fn(&D, &D) -> D) + Sync + Send>, op2: Arc<(Fn(&D, &D) -> D) + Sync + Send>, initial_val: D)
             -> Result<Vec<D>, &'a str>
         where D: Copy + Sync + Send + 'static {
-    let mat = mat_lock.lock().unwrap();
     if mat.shape()[1] != vector.len() {
         return Err("Incompatible dimensions");
     } else {
@@ -315,6 +309,69 @@ fn generic_mat_vec_mult_single_thread<'a, D>(mat_lock: &Mutex<Arc<Array2<D>>>, v
             result.push(initial_val);
             for j in 0..vector.len() {
                 result[i] = op2(&result[i], &op1(&row[j], &vector[j]));
+            }
+        }
+        return Ok(result);
+    }
+}
+
+pub fn generic_csr_mat_vec_mult_multi_thread<'a, D>(mat: Arc<CsrMatrix<D>>, vector: Vec<D>,
+        op1: Arc<(Fn(&D, &D) -> D) + Sync + Send>, op2: Arc<(Fn(&D, &D) -> D) + Sync + Send>, initial_val: D)
+            -> Result<Vec<D>, &'a str>
+        where D: Copy + Sync + Send + 'static {
+    if mat.columns != vector.len() {
+        return Err("Incompatible dimensions");
+
+    } else {
+        let mut result: Vec<D> = Vec::with_capacity(mat.rows);
+        for _ in 0..mat.rows {
+            result.push(initial_val);
+        }
+        //let locked_result = Arc::new(Mutex::new(result));
+        let arc_vector = Arc::new(vector);
+
+        let threads = num_cpus::get();
+        let mut group_size = mat.rows / threads;
+        if mat.rows % threads != 0 {
+            group_size += 1;
+        }
+
+        result.par_iter_mut().chunks(group_size).enumerate().for_each(|(g, mut rc)| {
+            let mat_ref = Arc::clone(&mat);
+            let vec_ref = Arc::clone(&arc_vector);
+            let op1_ref = Arc::clone(&op1);
+            let op2_ref = Arc::clone(&op2);
+            let mut group_res: Vec<D> = Vec::with_capacity(group_size);
+            for i in (g*group_size)..(((g+1)*group_size).min(mat_ref.rows)) {
+                let mut r = initial_val;
+                for j in mat_ref.cum_row_indexes[i]..mat_ref.cum_row_indexes[i+1] {
+                    r = op2_ref(&r, &op1_ref(&mat_ref.values[j], &vec_ref[mat_ref.column_indexes[j]]));
+                }
+                group_res.push(r);
+            }
+            //let mut res_lock = res_ref.lock().unwrap();
+            //let mut res_lock = lrc.lock().unwrap();
+            for (i, v) in ((g*group_size)..(((g+1)*group_size).min(mat_ref.rows))).zip(group_res.iter()) {
+                *rc[i % group_size] = *v;
+            }
+        });
+        return Ok(result);
+    }
+}
+
+pub fn generic_csr_mat_vec_mult_single_thread<'a, D>(mat: Arc<CsrMatrix<D>>, vector: Vec<D>,
+        op1: Arc<(Fn(&D, &D) -> D) + Sync + Send>, op2: Arc<(Fn(&D, &D) -> D) + Sync + Send>, initial_val: D)
+            -> Result<Vec<D>, &'a str>
+        where D: Copy + Sync + Send + 'static {
+    if mat.columns != vector.len() {
+        return Err("Incompatible dimensions");
+    } else {
+        let mut result: Vec<D> = Vec::with_capacity(mat.rows);
+
+        for i in 0..mat.rows {
+            result.push(initial_val);
+            for j in mat.cum_row_indexes[i]..mat.cum_row_indexes[i+1] {
+                result[i] = op2(&result[i], &op1(&mat.values[j], &vector[mat.column_indexes[j]]));
             }
         }
         return Ok(result);

@@ -122,11 +122,11 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
         let pr_no_infections = match mat_mul_func {
             MatMulFunction::SingleThreaded => match mat {
                 LockedMatrixAndGpuAllocs::Dense(ref mga) => negative_prob_multiply_dense_matrix_vector_cpu_safe(1, mga.0.clone(), node_transmitivity).unwrap(),
-                LockedMatrixAndGpuAllocs::Sparse(_) => panic!("Sparse matrices not implemented for CPU simulations")
+                LockedMatrixAndGpuAllocs::Sparse(ref smga) => generic_csr_mat_vec_mult_single_thread(smga.0.clone(), node_transmitivity, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap()
             },
             MatMulFunction::MultiThreaded => match mat {
                 LockedMatrixAndGpuAllocs::Dense(ref mga) => generic_mat_vec_mult_multi_thread(mga.0.clone(), node_transmitivity, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap(),
-                LockedMatrixAndGpuAllocs::Sparse(_) => panic!("Sparse matrices not implemented for CPU simulations")
+                LockedMatrixAndGpuAllocs::Sparse(ref smga) => generic_csr_mat_vec_mult_multi_thread(smga.0.clone(), node_transmitivity, Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).unwrap()
             },
             MatMulFunction::GPU => {
                 match mat {
