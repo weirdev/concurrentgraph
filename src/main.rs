@@ -24,12 +24,12 @@ mod simulations;
 
 use simulations::*;
 
-fn test_basic_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
+fn test_basic_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction, steps: usize) -> io::Result<()> {
     let mut graph = Graph::new_sim_graph(10_000, 0.3, disease, false);
     let start_time = SystemTime::now();
     //graph.simulate_basic_looped_stochastic(200, &[disease]);
     //for _ in 0..iters {
-        simulate_basic_mat_stochastic(&mut graph, 200, &[disease], mat_mul_fun);
+        simulate_basic_mat_stochastic(&mut graph, steps, &[disease], mat_mul_fun);
     //}
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
@@ -54,6 +54,28 @@ fn test_sparse_stochastic(community_count: usize, community_size: usize, inter_c
 
 
     graph.nodes[0].infections = vec![InfectionStatus::Infected(disease.infection_length)];
+    let start_time = SystemTime::now();
+    //graph.simulate_basic_looped_stochastic(200, &[disease]);
+    simulate_basic_mat_stochastic(&mut graph, steps, &[disease], mat_mul_fun);
+    let runtime = SystemTime::now().duration_since(start_time)
+        .expect("Time went backwards");
+    println!("Ran in {} secs", runtime.as_secs());
+    println!("{} dead", graph.dead_count());
+    println!("{} infected", graph.infected_count(0));
+
+    Ok(())
+}
+
+fn test_simple_sparse_stochastic(sparsity: f32, agents: usize,
+                            steps: usize, disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
+    let mat = CsrMatrix::new_with_conn_prob(agents, agents, sparsity).sort_rows();
+    let mut nodes: Vec<Node> = (0..(agents-1)).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
+    nodes.push(Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::Infected(disease.infection_length)] });
+    let mut graph = Graph {
+        nodes: nodes,
+        weights: Matrix::Sparse(Mutex::new(Arc::new(mat)))
+    };
+
     let start_time = SystemTime::now();
     //graph.simulate_basic_looped_stochastic(200, &[disease]);
     simulate_basic_mat_stochastic(&mut graph, steps, &[disease], mat_mul_fun);
@@ -236,6 +258,15 @@ fn mat_mul_test5(iters: usize, mat_mul_fun: MatMulFunction, sparsity: f32) {
     random_sparse_mat_mul(iters, 15_000, mat_mul_fun, sparsity).unwrap();
 }
 
+fn sparse_sim1(iters: usize, mat_mul_fun: MatMulFunction, sparsity: f32, disease: &Disease) {
+    println!("sim {} iters, 5_000 size mat", iters*8);
+    test_simple_sparse_stochastic(sparsity, 5_000, iters*8, disease, mat_mul_fun).unwrap();
+    println!("sim {} iters, 10_000 size mat", iters*2);
+    test_simple_sparse_stochastic(sparsity, 10_000, iters*2, disease, mat_mul_fun).unwrap();
+    println!("sim {} iters, 15_000 size mat", iters);
+    test_simple_sparse_stochastic(sparsity, 15_000, iters*2, disease, mat_mul_fun).unwrap();
+}
+
 fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
     let sp_mat = CsrMatrix::read_from_adj_list_file(file);
     println!("loaded {}", file);
@@ -337,45 +368,53 @@ fn main() -> io::Result<()> {
 
     //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
     //test_basic_stochastic(&flu, MatMulFunction::MultiThreaded)?;
-    //println!("multi threaded");
+
+    println!("just dense");
+    println!("multi threaded");
+    test_basic_stochastic(&flu, MatMulFunction::MultiThreaded, 5)?;
     //mat_mul_test4(5, &flu, MatMulFunction::MultiThreaded);
-    //println!("single threaded");
+    println!("single threaded");
+    test_basic_stochastic(&flu, MatMulFunction::SingleThreaded, 5)?;
     //mat_mul_test4(5, &flu, MatMulFunction::SingleThreaded);
-    //println!("gpu");
+    println!("gpu");
+    test_basic_stochastic(&flu, MatMulFunction::GPU, 100)?;
     //mat_mul_test4(100, &flu, MatMulFunction::GPU);
 
+    /*
     println!("fully dense");
     let sparsity = 1.0;
-    /*
+    
     println!("multi threaded");
     mat_mul_test5(5, MatMulFunction::MultiThreaded, sparsity);
     println!("single threaded");
     mat_mul_test5(5, MatMulFunction::SingleThreaded, sparsity);
-    */
+    
     println!("gpu");
     mat_mul_test5(10_000, MatMulFunction::GPU, sparsity);
-    
+    */
+
     println!("1/100 sp");
     
     let sparsity = 0.01;
-    //println!("multi threaded");
-    //mat_mul_test5(50000, MatMulFunction::MultiThreaded, sparsity);
+    println!("multi threaded");
+    sparse_sim1(50000, MatMulFunction::MultiThreaded, sparsity, &flu);
     println!("single threaded");
-    mat_mul_test5(5000, MatMulFunction::SingleThreaded, sparsity);
+    sparse_sim1(5000, MatMulFunction::SingleThreaded, sparsity, &flu);
     
     println!("gpu");
-    mat_mul_test5(1000, MatMulFunction::GPU, sparsity);
+    sparse_sim1(1000, MatMulFunction::GPU, sparsity, &flu);
 
     println!("1/1000 sp");
-    /*
+    
     let sparsity = 0.001;
     println!("multi threaded");
-    mat_mul_test5(50000, MatMulFunction::MultiThreaded, sparsity);
+    sparse_sim1(50000, MatMulFunction::MultiThreaded, sparsity, &flu);
     println!("single threaded");
-    mat_mul_test5(50000, MatMulFunction::SingleThreaded, sparsity);
-    */
+    sparse_sim1(50000, MatMulFunction::SingleThreaded, sparsity, &flu);
+    
     println!("gpu");
-    mat_mul_test5(1000, MatMulFunction::GPU, sparsity);
+    sparse_sim1(1000, MatMulFunction::GPU, sparsity, &flu);
+    
 
     /*
     println!("Sparsity factor 0.001");
