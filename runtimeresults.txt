@@ -307,12 +307,12 @@ Ran in 125 secs
 
 1/100 density
 multi threaded
-4000 iters, 5_000 size mat
-Ran in 2 secs
-1000 iters, 10_000 size mat
-Ran in 1 secs
-500 iters, 15_000 size mat
-Ran in 1 secs
+400000 iters, 5_000 size mat
+Ran in 182 secs
+100000 iters, 10_000 size mat
+Ran in 171 secs
+50000 iters, 15_000 size mat
+Ran in 187 secs
 single threaded
 4000 iters, 5_000 size mat
 Ran in 4 secs
