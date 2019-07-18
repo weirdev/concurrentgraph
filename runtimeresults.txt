@@ -75,13 +75,13 @@ CPU-ST test
 
 Simulation test:
 CPU-ST
-2372 dead
-3060 infected
+
+
 Ran in 83 secs
 
 GPU
-2374 dead
-3037 infected
+
+
 Ran in 16 secs
 
 ~5.188x speedup from GPU
@@ -206,52 +206,52 @@ Simulations
 Sparsity factor 0.001
 10_000 nodes, 1_000 steps
 Generated 100346 val sparse graph in 0 secs
-1446 dead
-1451 infected
+
+
 Ran in 27 secs
 30_000 nodes, 100 steps
 Generated 899473 val sparse graph in 8 secs
-2424 dead
-3520 infected
+
+
 Ran in 90 secs
 100_000 nodes, 10 steps
 Generated 10002406 val sparse graph in 98 secs
-0 dead
-50000 infected
+
+
 Ran in 519 secs
 
 Sparsity factor 0.0001
 10_000 nodes, 1_000 steps
 Generated 10197 val sparse graph in 0 secs
-532 dead
-532 infected
+
+
 Ran in 3 secs
 30_000 nodes, 100 steps
 Generated 90042 val sparse graph in 8 secs
-1793 dead
-2134 infected
+
+
 Ran in 6 secs
 100_000 nodes, 10 steps
 Generated 1000045 val sparse graph in 98 secs
-0 dead
-49996 infected
+
+
 Ran in 38 secs
 
 Sparsity factor 0.01
 10_000 nodes, 100 steps
 Generated 998223 val sparse graph in 1 secs
-840 dead
-1213 infected
+
+
 Ran in 33 secs
 30_000 nodes, 30 steps
 Generated 9001545 val sparse graph in 9 secs
-1609 dead
-2814 infected
+
+
 Ran in 393 secs
 100_000 nodes, 3 steps
 Generated 100004503 val sparse graph in 100 secs
-0 dead
-49946 infected
+
+
 Ran in 1535 secs
 
 
@@ -314,6 +314,7 @@ Ran in 182 secs
 Ran in 171 secs
 50000 iters, 15_000 size mat
 Ran in 187 secs
+
 single threaded
 40000 iters, 5_000 size mat
 Ran in 49 secs
@@ -321,6 +322,7 @@ Ran in 49 secs
 Ran in 51 secs
 5000 iters, 15_000 size mat
 Ran in 58 secs
+
 gpu
 8000 iters, 5_000 size mat
 Ran in 6 secs
@@ -337,6 +339,7 @@ Ran in 36 secs
 Ran in 26 secs
 50000 iters, 15_000 size mat
 Ran in 26 secs
+
 single threaded
 400000 iters, 5_000 size mat
 Ran in 55 secs
@@ -344,6 +347,7 @@ Ran in 55 secs
 Ran in 52 secs
 50000 iters, 15_000 size mat
 Ran in 59 secs
+
 gpu
 8000 iters, 5_000 size mat
 Ran in 6 secs
@@ -355,3 +359,77 @@ Ran in 2 secs
 -------
 
 Sims, otherwise same as above
+just dense
+multi threaded
+sim 40 iters, 5_000 size mat
+Ran in 9 secs
+sim 10 iters, 10_000 size mat
+Ran in 3 secs
+sim 5 iters, 15_000 size mat
+Ran in 0 secs
+
+single threaded
+sim 40 iters, 5_000 size mat
+Ran in 34 secs
+sim 10 iters, 10_000 size mat
+Ran in 14 secs
+sim 5 iters, 15_000 size mat
+Ran in 2 secs
+
+gpu
+sim 800 iters, 5_000 size mat
+Ran in 61 secs
+sim 200 iters, 10_000 size mat
+Ran in 15 secs
+sim 100 iters, 15_000 size mat
+Ran in 7 secs
+
+1/100 sp
+multi threaded
+sim 40000 iters, 5_000 size mat
+Ran in 44 secs
+sim 10000 iters, 10_000 size mat
+Ran in 29 secs
+sim 5000 iters, 15_000 size mat
+Ran in 26 secs
+
+single threaded
+sim 40000 iters, 5_000 size mat
+Ran in 64 secs
+sim 10000 iters, 10_000 size mat
+Ran in 58 secs
+sim 5000 iters, 15_000 size mat
+Ran in 63 secs
+
+gpu
+sim 8000 iters, 5_000 size mat
+Ran in 9 secs
+sim 2000 iters, 10_000 size mat
+Ran in 4 secs
+sim 1000 iters, 15_000 size mat
+Ran in 3 secs
+
+1/1000 sp
+multi threaded
+sim 400000 iters, 5_000 size mat
+Ran in 290 secs
+sim 100000 iters, 10_000 size mat
+Ran in 166 secs
+sim 50000 iters, 15_000 size mat
+Ran in 127 secs
+
+single threaded
+sim 400000 iters, 5_000 size mat
+Ran in 206 secs
+sim 100000 iters, 10_000 size mat
+Ran in 130 seconds
+sim 50000 iters, 15_000 size mat
+Ran in 117 secs
+
+gpu
+sim 8000 iters, 5_000 size mat
+Ran in 9 secs
+sim 2000 iters, 10_000 size mat
+Ran in 4 secs
+sim 1000 iters, 15_000 size mat
+Ran in 3 secs

@@ -258,6 +258,15 @@ fn mat_mul_test5(iters: usize, mat_mul_fun: MatMulFunction, sparsity: f32) {
     random_sparse_mat_mul(iters, 15_000, mat_mul_fun, sparsity).unwrap();
 }
 
+fn mat_mul_test6(iters: usize, mat_mul_fun: MatMulFunction, sparsity: f32) {
+    println!("{} iters, 30_000 size mat", iters*3);
+    random_sparse_mat_mul(iters*8, 30_000, mat_mul_fun, sparsity).unwrap();
+    println!("{} iters, 40_000 size mat", iters*2);
+    random_sparse_mat_mul(iters*2, 40_000, mat_mul_fun, sparsity).unwrap();
+    println!("{} iters, 50_000 size mat", iters);
+    random_sparse_mat_mul(iters, 50_000, mat_mul_fun, sparsity).unwrap();
+}
+
 fn sparse_sim1(iters: usize, mat_mul_fun: MatMulFunction, sparsity: f32, disease: &Disease) {
     println!("sim {} iters, 5_000 size mat", iters*8);
     test_simple_sparse_stochastic(sparsity, 5_000, iters*8, disease, mat_mul_fun).unwrap();
@@ -265,6 +274,15 @@ fn sparse_sim1(iters: usize, mat_mul_fun: MatMulFunction, sparsity: f32, disease
     test_simple_sparse_stochastic(sparsity, 10_000, iters*2, disease, mat_mul_fun).unwrap();
     println!("sim {} iters, 15_000 size mat", iters);
     test_simple_sparse_stochastic(sparsity, 15_000, iters, disease, mat_mul_fun).unwrap();
+}
+
+fn sparse_sim2(iters: usize, mat_mul_fun: MatMulFunction, sparsity: f32, disease: &Disease) {
+    println!("sim {} iters, 30_000 size mat", iters*3);
+    test_simple_sparse_stochastic(sparsity, 30_000, iters*3, disease, mat_mul_fun).unwrap();
+    println!("sim {} iters, 40_000 size mat", iters*2);
+    test_simple_sparse_stochastic(sparsity, 40_000, iters*2, disease, mat_mul_fun).unwrap();
+    println!("sim {} iters, 50_000 size mat", iters);
+    test_simple_sparse_stochastic(sparsity, 50_000, iters, disease, mat_mul_fun).unwrap();
 }
 
 fn dense_sim1(iters: usize, mat_mul_fun: MatMulFunction, disease: &Disease) {
@@ -378,6 +396,7 @@ fn main() -> io::Result<()> {
     //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
     //test_basic_stochastic(&flu, MatMulFunction::MultiThreaded)?;
 
+    /*
     println!("just dense");
     println!("multi threaded");
     dense_sim1(5, MatMulFunction::MultiThreaded, &flu);
@@ -387,6 +406,7 @@ fn main() -> io::Result<()> {
     //mat_mul_test4(5, &flu, MatMulFunction::SingleThreaded);
     println!("gpu");
     dense_sim1(100, MatMulFunction::GPU, &flu);
+    */
     //mat_mul_test4(100, &flu, MatMulFunction::GPU);
 
     /*
@@ -401,7 +421,7 @@ fn main() -> io::Result<()> {
     println!("gpu");
     mat_mul_test5(10_000, MatMulFunction::GPU, sparsity);
     */
-
+    /*
     println!("1/100 sp");
     
     let sparsity = 0.01;
@@ -423,6 +443,28 @@ fn main() -> io::Result<()> {
     
     println!("gpu");
     sparse_sim1(1000, MatMulFunction::GPU, sparsity, &flu);
+    */
+
+    println!("1/1000 sp");
+    let sparsity = 0.001;
+    println!("mat math");
+    println!("multi threaded");
+    mat_mul_test6(500, MatMulFunction::MultiThreaded, sparsity);
+    println!("single threaded");
+    mat_mul_test6(500, MatMulFunction::SingleThreaded, sparsity);
+    println!("gpu");
+    mat_mul_test6(1000, MatMulFunction::GPU, sparsity);
+    
+    println!("sims");
+    println!("multi threaded");
+    sparse_sim2(500, MatMulFunction::MultiThreaded, sparsity, &flu);
+    println!("single threaded");
+    sparse_sim2(500, MatMulFunction::SingleThreaded, sparsity, &flu);
+    
+    println!("gpu");
+    sparse_sim2(1000, MatMulFunction::GPU, sparsity, &flu);
+
+
     
 
     /*
