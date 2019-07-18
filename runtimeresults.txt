@@ -284,7 +284,41 @@ Random sparse matrices,
 sorted rows,
 just matrix math,
 fully dense, sparse layout
+40 iters, 5_000 size mat
+Ran in 8 secs
+10 iters, 10_000 size mat
+Ran in 8 secs
+5 iters, 15_000 size mat
+Ran in 9 secs
+single threaded
+40 iters, 5_000 size mat
+Ran in 51 secs
+10 iters, 10_000 size mat
+Ran in 52 secs
+5 iters, 15_000 size mat
+Ran in 59 secs
+gpu
+8 iters, 5_000 size mat
+Ran in 32 secs
+2 iters, 10_000 size mat
+Ran in 73 secs
+1 iters, 15_000 size mat
+Ran in 125 secs
 
 1/100 density
+multi threaded
+4000 iters, 5_000 size mat
+Ran in 2 secs
+1000 iters, 10_000 size mat
+Ran in 1 secs
+500 iters, 15_000 size mat
+Ran in 1 secs
+single threaded
+4000 iters, 5_000 size mat
+Ran in 4 secs
+1000 iters, 10_000 size mat
+Ran in 4 secs
+500 iters, 15_000 size mat
+Ran in 5 secs
 
 1/1000 density
