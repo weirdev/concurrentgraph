@@ -353,27 +353,29 @@ fn main() -> io::Result<()> {
     mat_mul_test5(5, MatMulFunction::SingleThreaded, sparsity);
     */
     println!("gpu");
-    mat_mul_test5(1, MatMulFunction::GPU, sparsity);
+    mat_mul_test5(100, MatMulFunction::GPU, sparsity);
     
     println!("1/100 sp");
-    /*
+    
     let sparsity = 0.01;
     println!("multi threaded");
-    mat_mul_test5(5000, MatMulFunction::MultiThreaded, sparsity);
+    mat_mul_test5(50000, MatMulFunction::MultiThreaded, sparsity);
     println!("single threaded");
-    mat_mul_test5(5000, MatMulFunction::SingleThreaded, sparsity);
-    */
+    mat_mul_test5(50000, MatMulFunction::SingleThreaded, sparsity);
+    
     println!("gpu");
-    mat_mul_test5(1, MatMulFunction::GPU, sparsity);
+    mat_mul_test5(1000, MatMulFunction::GPU, sparsity);
 
     println!("1/1000 sp");
+    /*
     let sparsity = 0.001;
     println!("multi threaded");
     mat_mul_test5(50000, MatMulFunction::MultiThreaded, sparsity);
     println!("single threaded");
     mat_mul_test5(50000, MatMulFunction::SingleThreaded, sparsity);
+    */
     println!("gpu");
-    mat_mul_test5(100_000, MatMulFunction::GPU, sparsity);
+    mat_mul_test5(1000, MatMulFunction::GPU, sparsity);
 
     /*
     println!("Sparsity factor 0.001");
