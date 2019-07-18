@@ -413,7 +413,7 @@ fn main() -> io::Result<()> {
     //mat_mul_test5(5, MatMulFunction::MultiThreaded, sparsity);
 
     println!("single threaded");
-    mat_mul_test5(5, MatMulFunction::SingleThreaded, sparsity);
+    mat_mul_test5(500, MatMulFunction::SingleThreaded, sparsity);
     
     //println!("gpu");
     //mat_mul_test5(10_000, MatMulFunction::GPU, sparsity);
