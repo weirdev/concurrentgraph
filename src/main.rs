@@ -327,7 +327,7 @@ fn main() -> io::Result<()> {
     //println!("single threaded");
     //mat_mul_test4(5, &flu, MatMulFunction::SingleThreaded);
     println!("gpu");
-    mat_mul_test4(10, &flu, MatMulFunction::GPU);
+    mat_mul_test4(100, &flu, MatMulFunction::GPU);
     /*
     println!("Sparsity factor 0.001");
     println!("10_000 nodes, 1_000 steps");
