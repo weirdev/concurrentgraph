@@ -406,12 +406,12 @@ fn main() -> io::Result<()> {
     //mat_mul_test4(100, &flu, MatMulFunction::GPU);
 
     
-    println!("fully dense");
-    let sparsity = 1.0;
+    println!("0.01");
+    let sparsity = 0.01;
     
     //println!("multi threaded");
     //mat_mul_test5(5, MatMulFunction::MultiThreaded, sparsity);
-    
+
     println!("single threaded");
     mat_mul_test5(5, MatMulFunction::SingleThreaded, sparsity);
     
