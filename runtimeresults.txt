@@ -291,6 +291,7 @@ Ran in 8 secs
 Ran in 8 secs
 5 iters, 15_000 size mat
 Ran in 9 secs
+
 single threaded
 40 iters, 5_000 size mat
 Ran in 51 secs
@@ -298,6 +299,7 @@ Ran in 51 secs
 Ran in 52 secs
 5 iters, 15_000 size mat
 Ran in 59 secs
+
 gpu
 80000 iters, 5_000 size mat
 Ran in 68 secs
@@ -377,6 +379,22 @@ Ran in 15 secs
 Ran in 13 secs
 1000 iters, 50_000 size mat
 Ran in 8 secs
+
+multi threaded
+1000 iters, 75_000 size mat
+Ran in 12 secs
+500 iters, 100_000 size mat
+Ran in 11 secs
+single threaded
+1000 iters, 75_000 size mat
+Ran in 42 secs
+500 iters, 100_000 size mat
+Ran in 39 secs
+gpu
+2000 iters, 75_000 size mat
+Ran in 25 secs
+1000 iters, 100_000 size mat
+Ran in 16 secs
 
 -------
 
@@ -479,3 +497,15 @@ sim 2000 iters, 40_000 size mat
 Ran in 18 secs
 sim 1000 iters, 50_000 size mat
 Ran in 11 secs
+
+multi threaded
+sim 1000 iters, 75_000 size mat
+Ran in 26 secs
+sim 500 iters, 100_000 size mat
+Ran in 46 secs
+
+gpu
+sim 2000 iters, 75_000 size mat
+Ran in 35 secs
+sim 1000 iters, 100_000 size mat
+Ran in 23 secs
