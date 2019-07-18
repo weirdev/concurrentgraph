@@ -264,7 +264,16 @@ fn sparse_sim1(iters: usize, mat_mul_fun: MatMulFunction, sparsity: f32, disease
     println!("sim {} iters, 10_000 size mat", iters*2);
     test_simple_sparse_stochastic(sparsity, 10_000, iters*2, disease, mat_mul_fun).unwrap();
     println!("sim {} iters, 15_000 size mat", iters);
-    test_simple_sparse_stochastic(sparsity, 15_000, iters*2, disease, mat_mul_fun).unwrap();
+    test_simple_sparse_stochastic(sparsity, 15_000, iters, disease, mat_mul_fun).unwrap();
+}
+
+fn dense_sim1(iters: usize, mat_mul_fun: MatMulFunction, disease: &Disease) {
+    println!("sim {} iters, 5_000 size mat", iters*8);
+    test_basic_stochastic(disease, mat_mul_fun, iters*8).unwrap();
+    println!("sim {} iters, 10_000 size mat", iters*2);
+    test_basic_stochastic(disease, mat_mul_fun, iters*2).unwrap();
+    println!("sim {} iters, 15_000 size mat", iters);
+    test_basic_stochastic(disease, mat_mul_fun, iters).unwrap();
 }
 
 fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
@@ -371,13 +380,13 @@ fn main() -> io::Result<()> {
 
     println!("just dense");
     println!("multi threaded");
-    test_basic_stochastic(&flu, MatMulFunction::MultiThreaded, 5)?;
+    dense_sim1(5, MatMulFunction::MultiThreaded, &flu);
     //mat_mul_test4(5, &flu, MatMulFunction::MultiThreaded);
     println!("single threaded");
-    test_basic_stochastic(&flu, MatMulFunction::SingleThreaded, 5)?;
+    dense_sim1(5, MatMulFunction::SingleThreaded, &flu);
     //mat_mul_test4(5, &flu, MatMulFunction::SingleThreaded);
     println!("gpu");
-    test_basic_stochastic(&flu, MatMulFunction::GPU, 100)?;
+    dense_sim1(100, MatMulFunction::GPU, &flu);
     //mat_mul_test4(100, &flu, MatMulFunction::GPU);
 
     /*
@@ -397,7 +406,7 @@ fn main() -> io::Result<()> {
     
     let sparsity = 0.01;
     println!("multi threaded");
-    sparse_sim1(50000, MatMulFunction::MultiThreaded, sparsity, &flu);
+    sparse_sim1(5000, MatMulFunction::MultiThreaded, sparsity, &flu);
     println!("single threaded");
     sparse_sim1(5000, MatMulFunction::SingleThreaded, sparsity, &flu);
     
