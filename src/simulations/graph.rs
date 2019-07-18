@@ -7,6 +7,7 @@ use num_traits::identities::Zero;
 use ndarray::Array2;
 use rand::prelude::*;
 use rand::distributions::{Poisson, Gamma};
+use rayon::prelude::*;
 
 use concurrentgraph_cuda_sys::{CsrFloatMatrixPtrs, CsrIntMatrixPtrs};
 
@@ -262,7 +263,7 @@ pub fn generic_mat_vec_mult_multi_thread<'a, D>(mat: Arc<Array2<D>>, vector: Vec
         for _ in 0..mat.shape()[0] {
             result.push(initial_val);
         }
-        let locked_result = Arc::new(Mutex::new(result));
+        //let locked_result = Arc::new(Mutex::new(result));
         let arc_vector = Arc::new(vector);
         
         let threads;
@@ -276,33 +277,26 @@ pub fn generic_mat_vec_mult_multi_thread<'a, D>(mat: Arc<Array2<D>>, vector: Vec
             group_size += 1;
         }
 
-        let mut handles: Vec<thread::JoinHandle<()>> = Vec::new();
-        for g in 0..threads {
+        result.par_iter_mut().chunks(group_size).enumerate().for_each(|(g, mut rc)| {
             let mat_ref = Arc::clone(&mat);
             let vec_ref = Arc::clone(&arc_vector);
             let op1_ref = Arc::clone(&op1);
             let op2_ref = Arc::clone(&op2);
-            let res_ref = Arc::clone(&locked_result);
-            let handle = thread::spawn(move || {
-                let mut group_res: Vec<D> = Vec::with_capacity(group_size);
-                for i in (g*group_size)..(((g+1)*group_size).min(mat_ref.shape()[0])) {
-                    let mut r = initial_val;
-                    for j in 0..vec_ref.len() {
-                        r = op2_ref(&r, &op1_ref(&mat_ref[(i, j)], &vec_ref[j]));
-                    }
-                    group_res.push(r);
+            let mut group_res: Vec<D> = Vec::with_capacity(group_size);
+            for i in (g*group_size)..(((g+1)*group_size).min(mat_ref.shape()[0])) {
+                let mut r = initial_val;
+                for j in 0..vec_ref.len() {
+                    r = op2_ref(&r, &op1_ref(&mat_ref[(i, j)], &vec_ref[j]));
                 }
-                let mut res_lock = res_ref.lock().unwrap();
-                for (i, v) in ((g*group_size)..(((g+1)*group_size).min(mat_ref.shape()[0]))).zip(group_res.iter()) {
-                    res_lock[i] = *v;
-                }
-            });
-            handles.push(handle);
-        }
-        while handles.len() > 0 {
-            handles.pop().expect("Failed to pop thread handle").join().expect("Failed to rejoin thread");
-        }
-        return Ok(locked_result.lock().unwrap().to_vec());
+                group_res.push(r);
+            }
+            //let mut res_lock = res_ref.lock().unwrap();
+            //let mut res_lock = lrc.lock().unwrap();
+            for (i, v) in ((g*group_size)..(((g+1)*group_size).min(mat_ref.shape()[0]))).zip(group_res.iter()) {
+                *rc[i % group_size] = *v;
+            }
+        });
+        return Ok(result);
     }
 }
 

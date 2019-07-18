@@ -12,6 +12,8 @@ extern crate ndarray;
 
 extern crate num_traits;
 
+extern crate rayon;
+
 extern crate concurrentgraph_cuda_sys;
 
 use concurrentgraph_cuda_sys::*;
@@ -112,7 +114,10 @@ fn test_mat_mul(iters: usize, matrix: &Matrix<f32>, vector: Vec<f32>, mat_mul_fu
         Matrix::Dense(m) => {
             let mat = m.lock().unwrap().clone();
             match mat_mul_fun {
-                MatMulFunction::MultiThreaded => generic_mat_vec_mult_multi_thread(mat, vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).expect("Run failed"), // TODO: this doesnt support computation iteration
+                MatMulFunction::MultiThreaded => {
+                    (0..(iters-1)).for_each(|_| {generic_mat_vec_mult_multi_thread(mat.clone(), vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).expect("Run failed");});
+                    generic_mat_vec_mult_multi_thread(mat.clone(), vector.clone(), Arc::new(|a, b| 1.0 - a*b), Arc::new(|a,b| a*b), 1.0).expect("Run failed")
+                }, // TODO: this doesnt support computation iteration
                 MatMulFunction::SingleThreaded => negative_prob_multiply_dense_matrix_vector_cpu_safe(iters as isize, mat, vector.clone()).expect("Run failed"),
                 MatMulFunction::GPU => negative_prob_multiply_dense_matrix_vector_gpu_safe(iters as isize, mat, vector.clone()).expect("Run failed")
             }
@@ -196,6 +201,11 @@ fn mat_mul_test3(size: usize, iters: usize, gpu_restriction_factor: usize, spars
     test_mat_mul(iters, &mat, vector.clone(), MatMulFunction::GPU, gpu_restriction_factor)?;
 
     Ok(())
+}
+
+fn mat_mul_test4(iters: usize, disease: &Disease, mat_mul_fun: MatMulFunction) {
+    println!("{} iters, 10_000 size mat", iters);
+    random_mat_mul(iters, 10_000, &disease, mat_mul_fun, false).unwrap();
 }
 
 fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
@@ -298,7 +308,9 @@ fn main() -> io::Result<()> {
     };
 
     //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
-    //test_basic_stochastic(&flu, MatMulFunction::GPU)?;
+    //test_basic_stochastic(&flu, MatMulFunction::MultiThreaded)?;
+    mat_mul_test4(5, &flu, MatMulFunction::MultiThreaded);
+    mat_mul_test4(5, &flu, MatMulFunction::SingleThreaded);
     /*
     println!("Sparsity factor 0.001");
     println!("10_000 nodes, 1_000 steps");
@@ -317,7 +329,7 @@ fn main() -> io::Result<()> {
     //mat_mul_test1(&flu)?;
     //mat_mul_test2(&flu)?;
 
-    mat_mul_test3(10_000, 20, 1, 0.01)?;
+    //mat_mul_test3(10_000, 20, 1, 0.01)?;
 
     //test_hospital_graph_mat_mul("obsSparse5.adjlist", 10000);
     //test_hospital_graph_mat_mul("obsMod5.adjlist", 5000);
