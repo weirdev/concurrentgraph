@@ -256,6 +256,8 @@ Ran in 1535 secs
 
 
 ++++++++++++
+Random dense matrices,
+just matrix math
 multi threaded
 40 iters, 5_000 size mat
 Ran in 8 secs
@@ -270,4 +272,19 @@ Ran in 44 secs
 Ran in 47 secs
 5 iters, 15_000 size mat
 Ran in 53 secs
+gpu
+800 iters, 5_000 size mat
+Ran in 11 secs
+200 iters, 10_000 size mat
+Ran in 15 secs
+100 iters, 15_000 size mat
+Ran in 18 secs
 
+Random sparse matrices,
+sorted rows,
+just matrix math,
+fully dense, sparse layout
+
+1/100 density
+
+1/1000 density

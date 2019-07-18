@@ -90,7 +90,7 @@ fn test_basic_deterministic(disease: &Disease) -> io::Result<()> {
     Ok(())
 }
 
-fn random_mat_mul(iters: usize, graph_size: usize, disease: &Disease, mat_mul_fun: MatMulFunction, sparse: bool) -> io::Result<Vec<f32>> {
+fn random_dense_mat_mul(iters: usize, graph_size: usize, disease: &Disease, mat_mul_fun: MatMulFunction, sparse: bool) -> io::Result<Vec<f32>> {
     let mut graph = Graph::new_sim_graph(graph_size, 0.3, disease, false);
     let mat;
     {
@@ -107,6 +107,12 @@ fn random_mat_mul(iters: usize, graph_size: usize, disease: &Disease, mat_mul_fu
     graph.weights = mat;
     let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
     test_mat_mul(iters, &graph.weights, vector, mat_mul_fun, 1)
+}
+
+fn random_sparse_mat_mul(iters: usize, graph_size: usize, mat_mul_fun: MatMulFunction, sparsity: f32) -> io::Result<Vec<f32>> {
+    let mat = CsrMatrix::new_with_conn_prob(graph_size, graph_size, sparsity);
+    let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
+    test_mat_mul(iters, &Matrix::Sparse(Mutex::new(Arc::new(mat))), vector, mat_mul_fun, 1)
 }
 
 fn test_mat_mul(iters: usize, matrix: &Matrix<f32>, vector: Vec<f32>, mat_mul_fun: MatMulFunction, gpu_restriction_factor: usize) -> io::Result<Vec<f32>> {
@@ -159,15 +165,15 @@ fn test_mat_mul(iters: usize, matrix: &Matrix<f32>, vector: Vec<f32>, mat_mul_fu
 fn mat_mul_test1(disease: &Disease) -> io::Result<()> {
     println!("GPU test");
     println!("100 iters, 10_000 size mat");
-    random_mat_mul(100, 10_000, &disease, MatMulFunction::GPU, false)?;
+    random_dense_mat_mul(100, 10_000, &disease, MatMulFunction::GPU, false)?;
     println!("100 iters, 15_000 size mat");
-    random_mat_mul(100, 15_000, &disease, MatMulFunction::GPU, false)?;
+    random_dense_mat_mul(100, 15_000, &disease, MatMulFunction::GPU, false)?;
 
     println!("CPU single thread test");
     println!("100 iters, 10_000 size mat");
-    random_mat_mul(100, 10_000, &disease, MatMulFunction::SingleThreaded, false)?;
+    random_dense_mat_mul(100, 10_000, &disease, MatMulFunction::SingleThreaded, false)?;
     println!("100 iters, 15_000 size mat");
-    random_mat_mul(100, 15_000, &disease, MatMulFunction::SingleThreaded, false)?;
+    random_dense_mat_mul(100, 15_000, &disease, MatMulFunction::SingleThreaded, false)?;
     Ok(())
 }
 
@@ -214,11 +220,20 @@ fn mat_mul_test3(size: usize, iters: usize, gpu_restriction_factor: usize, spars
 
 fn mat_mul_test4(iters: usize, disease: &Disease, mat_mul_fun: MatMulFunction) {
     println!("{} iters, 5_000 size mat", iters*8);
-    random_mat_mul(iters*8, 5_000, &disease, mat_mul_fun, false).unwrap();
+    random_dense_mat_mul(iters*8, 5_000, &disease, mat_mul_fun, false).unwrap();
     println!("{} iters, 10_000 size mat", iters*2);
-    random_mat_mul(iters*2, 10_000, &disease, mat_mul_fun, false).unwrap();
+    random_dense_mat_mul(iters*2, 10_000, &disease, mat_mul_fun, false).unwrap();
     println!("{} iters, 15_000 size mat", iters);
-    random_mat_mul(iters, 15_000, &disease, mat_mul_fun, false).unwrap();
+    random_dense_mat_mul(iters, 15_000, &disease, mat_mul_fun, false).unwrap();
+}
+
+fn mat_mul_test5(iters: usize, mat_mul_fun: MatMulFunction, sparsity: f32) {
+    println!("{} iters, 5_000 size mat", iters*8);
+    random_sparse_mat_mul(iters*8, 5_000, mat_mul_fun, sparsity).unwrap();
+    println!("{} iters, 10_000 size mat", iters*2);
+    random_sparse_mat_mul(iters*2, 10_000, mat_mul_fun, sparsity).unwrap();
+    println!("{} iters, 15_000 size mat", iters);
+    random_sparse_mat_mul(iters, 15_000, mat_mul_fun, sparsity).unwrap();
 }
 
 fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
@@ -326,8 +341,36 @@ fn main() -> io::Result<()> {
     //mat_mul_test4(5, &flu, MatMulFunction::MultiThreaded);
     //println!("single threaded");
     //mat_mul_test4(5, &flu, MatMulFunction::SingleThreaded);
+    //println!("gpu");
+    //mat_mul_test4(100, &flu, MatMulFunction::GPU);
+
+    println!("fully dense");
+    let sparsity = 1.0;
+    println!("multi threaded");
+    mat_mul_test5(5, MatMulFunction::MultiThreaded, sparsity);
+    println!("single threaded");
+    mat_mul_test5(5, MatMulFunction::SingleThreaded, sparsity);
     println!("gpu");
-    mat_mul_test4(100, &flu, MatMulFunction::GPU);
+    mat_mul_test5(100, MatMulFunction::GPU, sparsity);
+
+    println!("1/100 sp");
+    let sparsity = 0.01;
+    println!("multi threaded");
+    mat_mul_test5(500, MatMulFunction::MultiThreaded, sparsity);
+    println!("single threaded");
+    mat_mul_test5(500, MatMulFunction::SingleThreaded, sparsity);
+    println!("gpu");
+    mat_mul_test5(10000, MatMulFunction::GPU, sparsity);
+
+    println!("1/1000 sp");
+    let sparsity = 0.001;
+    println!("multi threaded");
+    mat_mul_test5(5000, MatMulFunction::MultiThreaded, sparsity);
+    println!("single threaded");
+    mat_mul_test5(5000, MatMulFunction::SingleThreaded, sparsity);
+    println!("gpu");
+    mat_mul_test5(100_000, MatMulFunction::GPU, sparsity);
+
     /*
     println!("Sparsity factor 0.001");
     println!("10_000 nodes, 1_000 steps");
