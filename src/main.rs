@@ -322,10 +322,12 @@ fn main() -> io::Result<()> {
 
     //test_basic_stochastic(&flu, MatMulFunction::SingleThreaded)?;
     //test_basic_stochastic(&flu, MatMulFunction::MultiThreaded)?;
-    println!("multi threaded");
-    mat_mul_test4(5, &flu, MatMulFunction::MultiThreaded);
-    println!("single threaded");
-    mat_mul_test4(5, &flu, MatMulFunction::SingleThreaded);
+    //println!("multi threaded");
+    //mat_mul_test4(5, &flu, MatMulFunction::MultiThreaded);
+    //println!("single threaded");
+    //mat_mul_test4(5, &flu, MatMulFunction::SingleThreaded);
+    println!("gpu");
+    mat_mul_test4(10, &flu, MatMulFunction::GPU);
     /*
     println!("Sparsity factor 0.001");
     println!("10_000 nodes, 1_000 steps");
