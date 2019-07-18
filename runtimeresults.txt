@@ -253,3 +253,21 @@ Generated 100004503 val sparse graph in 100 secs
 0 dead
 49946 infected
 Ran in 1535 secs
+
+
+++++++++++++
+multi threaded
+40 iters, 5_000 size mat
+Ran in 8 secs
+10 iters, 10_000 size mat
+Ran in 8 secs
+5 iters, 15_000 size mat
+Ran in 9 secs
+single threaded
+40 iters, 5_000 size mat
+Ran in 44 secs
+10 iters, 10_000 size mat
+Ran in 47 secs
+5 iters, 15_000 size mat
+Ran in 53 secs
+

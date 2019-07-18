@@ -37,7 +37,7 @@ fn test_basic_stochastic(disease: &Disease, mat_mul_fun: MatMulFunction) -> io::
     Ok(())
 }
 
-fn test_sparse_stochastic(community_count: usize, community_size: usize, inter_comm_connection_prob: f32, 
+fn test_sparse_stochastic(community_count: usize, community_size: usize, inter_comm_connection_prob: f32,
                             steps: usize, disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
     let start_time = SystemTime::now();
     let community: Vec<Node> = (0..community_size).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
@@ -49,7 +49,7 @@ fn test_sparse_stochastic(community_count: usize, community_size: usize, inter_c
         Matrix::Sparse(mat) => println!("Generated {} val sparse graph in {} secs", mat.lock().unwrap().values.len(), runtime.as_secs()),
         _ => ()
     }
-    
+
 
     graph.nodes[0].infections = vec![InfectionStatus::Infected(disease.infection_length)];
     let start_time = SystemTime::now();
@@ -68,14 +68,14 @@ fn test_basic_deterministic(disease: &Disease) -> io::Result<()> {
     let community: Vec<Node> = (0..100).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
     let communities: Vec<Vec<Node>> = (0..200).map(|_| community.clone()).collect();
     let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.001, 0.1);
-    
+
     let start_time = SystemTime::now();
     simulate_basic_mat_bfs_gpu(&mut graph, 100, &[disease]);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     println!("total GPU Ran in {} secs", runtime.as_secs());
     //graph.simulate_basic_looped_deterministic_shedding_incorrect(200, &[disease]);
-    
+
     let community: Vec<Node> = (0..100).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
     let communities: Vec<Vec<Node>> = (0..200).map(|_| community.clone()).collect();
     let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.001, 0.1);
@@ -109,7 +109,7 @@ fn random_mat_mul(iters: usize, graph_size: usize, disease: &Disease, mat_mul_fu
 
 fn test_mat_mul(iters: usize, matrix: &Matrix<f32>, vector: Vec<f32>, mat_mul_fun: MatMulFunction, gpu_restriction_factor: usize) -> io::Result<Vec<f32>> {
     let start_time = SystemTime::now();
-    
+
     let result = match matrix {
         Matrix::Dense(m) => {
             let mat = m.lock().unwrap().clone();
@@ -230,7 +230,7 @@ fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
     }
     let _res = npmmv_gpu_get_out_vector_safe(NpmmvAllocations::Sparse(gpu_alloc), sp_mat.rows);
     npmmv_csr_gpu_free_safe(gpu_alloc);
-    
+
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     println!("Ran nonordered rows in {} secs", runtime.as_secs());
@@ -248,7 +248,7 @@ fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
     }
     let _res = npmmv_gpu_get_out_vector_safe(NpmmvAllocations::Sparse(gpu_alloc), sp_mat.rows);
     npmmv_csr_gpu_free_safe(gpu_alloc);
-    
+
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     println!("Ran sorted rows in {} secs", runtime.as_secs());
@@ -257,7 +257,7 @@ fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
 fn time_sssp(file: &str, iters: usize) {
     let sp_mat = CsrMatrix::new_with_conn_prob(100000, 100000, 0.1); //CsrMatrix::read_from_adj_list_file(file);
     println!("loaded {}", file);
-    
+
     let start_time = SystemTime::now();
     for _ in 0..iters {
         sssp_safe(sp_mat.get_ptrs(), sp_mat.rows, sp_mat.values.len());
@@ -328,7 +328,7 @@ fn main() -> io::Result<()> {
     println!("100_000 nodes, 10 steps");
     test_sparse_stochastic(100_000, 1, 0.001, 10, &flu, MatMulFunction::GPU)?;
     */
-    
+
     //test_basic_deterministic(&flu)?;
 
     //test_basic_deterministic(&flu)?;

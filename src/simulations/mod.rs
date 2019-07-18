@@ -21,7 +21,7 @@ pub fn simulate_basic_looped_stochastic(graph: &mut Graph, steps: usize, disease
             let new_node = match node.status {
                 // Node is asymptomatic (just means alive for basic simulation),
                 // check if it gets infected by a disease, or dies from a disease
-                AgentStatus::Asymptomatic => { 
+                AgentStatus::Asymptomatic => {
                     let mut died = false;
                     let mut new_infections: Vec<InfectionStatus> = Vec::new();
                     // For each disease, check if the disease is passed to node,
@@ -112,7 +112,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
     for _ts in 0..steps {
         let node_transmitivity: Vec<f32> = graph.nodes.iter().map(|n| match n.status {
             AgentStatus::Asymptomatic => match n.infections[0] {
-                InfectionStatus::Infected(t) => 
+                InfectionStatus::Infected(t) =>
                         (*diseases[0].shedding_fun)(t as isize) * diseases[0].transmission_rate,
                 _ => 0.0,
             },
@@ -146,7 +146,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
                             v
                         },
                         None => panic!("GPU should be allocated at this point")
-                    } 
+                    }
                 }
             }
         };
@@ -168,7 +168,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
             AgentStatus::Asymptomatic => {
                 let mut died = false;
                 let infstatus = match n.infections[0] {
-                    InfectionStatus::Infected(1) => 
+                    InfectionStatus::Infected(1) =>
                         if random::<f32>() < diseases[0].mortality_rate {
                             died = true;
                             infected += 1;
@@ -220,7 +220,7 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
         LockedMatrixAndGpuAllocs::Sparse(smga) => match smga.1 {
             Some(ga) => npmmv_csr_gpu_free_safe(ga),
             None => ()
-        }     
+        }
     }
 }
 
@@ -257,7 +257,7 @@ pub fn simulate_basic_mat_bfs_cpu(graph: &Graph, steps: usize, diseases: &[&Dise
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
     println!("CPU BFS rand in {} secs", runtime.as_secs());
-    
+
     let infection_count: usize = infections.iter().sum();
     println!("{} infections", infection_count);
 }
@@ -308,9 +308,9 @@ pub fn simulate_basic_mat_bfs_gpu(graph: &Graph, steps: usize, diseases: &[&Dise
         Matrix::Sparse(sm) => {
             let lsm = sm.lock().unwrap().clone();
             let ga = bfs_csr_gpu_allocate_safe(lsm.rows, lsm.values.len());
-            
+
             bfs_gpu_set_csr_matrix_safe(lsm.get_ptrs(), ga, lsm.rows, lsm.values.len());
-            
+
             bfs_gpu_set_in_vector_safe(infections, BfsAllocations::Sparse(ga));
 
             LockedMatrixAndGpuAllocs::Sparse((lsm, ga))
@@ -339,7 +339,7 @@ pub fn simulate_basic_mat_bfs_gpu(graph: &Graph, steps: usize, diseases: &[&Dise
         LockedMatrixAndGpuAllocs::Dense(_) => panic!("Dense operations not implemented yet"),
         LockedMatrixAndGpuAllocs::Sparse(mga) => bfs_gpu_get_out_vector_safe(BfsAllocations::Sparse(mga.1), mga.0.rows)
     };
-    
+
     let infection_count: usize = out_infections.iter().sum();
     println!("{} infections", infection_count);
 }
@@ -361,7 +361,7 @@ pub fn simulate_basic_looped_deterministic(graph: &mut Graph, steps: usize, dise
             let new_node = match node.status {
                 // Node is asymptomatic (just means alive for basic simulation),
                 // check if it gets infected by a disease, or dies from a disease
-                AgentStatus::Asymptomatic => { 
+                AgentStatus::Asymptomatic => {
                     let mut died = false;
                     let mut new_infections: Vec<InfectionStatus> = Vec::new();
                     // For each disease, check if the disease is passed to node,
@@ -386,7 +386,7 @@ pub fn simulate_basic_looped_deterministic(graph: &mut Graph, steps: usize, dise
                                         InfectionStatus::NotInfected(_) => None,
                                         InfectionStatus::Infected(t) => Some((i, w, t))
                                     });
-                                
+
                                 let transmission = incoming_infectors.fold(false, |infection, (_, w, t)| {
                                         let inf: bool;
                                         if *w == 0 {
@@ -501,7 +501,7 @@ pub fn simulate_basic_looped_deterministic_shedding_incorrect(graph: &mut Graph,
             let new_node = match node.status {
                 // Node is asymptomatic (just means alive for basic simulation),
                 // check if it gets infected by a disease, or dies from a disease
-                AgentStatus::Asymptomatic => { 
+                AgentStatus::Asymptomatic => {
                     let mut died = false;
                     let mut new_infections: Vec<InfectionStatus> = Vec::new();
                     // For each disease, check if the disease is passed to node,
@@ -526,7 +526,7 @@ pub fn simulate_basic_looped_deterministic_shedding_incorrect(graph: &mut Graph,
                                         InfectionStatus::NotInfected(_) => None,
                                         InfectionStatus::Infected(t) => Some((i, w, t))
                                     });
-                                
+
                                 let transmission = incoming_infectors.fold(false, |infection, (_, w, _t)| {
                                         let mut inf = false;
                                         if *w == 0 {

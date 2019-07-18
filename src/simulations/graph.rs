@@ -61,7 +61,7 @@ pub struct CsrMatrix<T> {
     pub values: Vec<T>
 }
 
-impl<T> CsrMatrix<T> 
+impl<T> CsrMatrix<T>
         where T: Clone + Copy + Zero + PartialOrd {
     pub fn new(rows: usize, columns: usize) -> CsrMatrix<T> {
         CsrMatrix {
@@ -83,7 +83,7 @@ impl<T> CsrMatrix<T>
                     sparse_mat.values.push(mat[(i, j)]);
                 }
             }
-            
+
             let mut cur_col = sparse_mat.column_indexes[sparse_mat.values.len()-1];
             for _ in 0..((0.05*((sparse_mat.values.len() - sparse_mat.cum_row_indexes[0]) as f64)) as usize) {
                 sparse_mat.column_indexes.push(cur_col);
@@ -131,7 +131,7 @@ impl<T> CsrMatrix<T>
             row_sizes.push(self.cum_row_indexes[i+1]-self.cum_row_indexes[i]);
         }
         let mut sorted_sizes: Vec<(usize, usize)> = row_sizes.into_iter().enumerate().collect();
-        
+
         sorted_sizes.as_mut_slice().shuffle(&mut thread_rng());
 
         let mut sparse_mat = CsrMatrix::new(self.rows, self.columns);
@@ -166,7 +166,7 @@ impl CsrMatrix<f32> {
         let mut file = File::open(file).unwrap();
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
-        
+
         let mut sp_mat = CsrMatrix::new(0, 0);
         let mut nodes = 0;
         let mut nodes_reffed = 0;
@@ -241,7 +241,7 @@ pub struct Disease<'a> {
     pub mortality_rate: f32,
     pub infection_length: usize,
     pub post_infection_immunity: f32,
-    
+
     /// Days of infection left -> shedding probability
     pub shedding_fun: Box<Fn(isize) -> f32>
 }
@@ -252,13 +252,13 @@ fn remove_weight_mat_self_refs(weight_mat: &mut Array2<f32>) {
     }
 }
 
-pub fn generic_mat_vec_mult_multi_thread<'a, D>(mat: Arc<Array2<D>>, vector: Vec<D>, 
-        op1: Arc<(Fn(&D, &D) -> D) + Sync + Send>, op2: Arc<(Fn(&D, &D) -> D) + Sync + Send>, initial_val: D) 
-            -> Result<Vec<D>, &'a str> 
+pub fn generic_mat_vec_mult_multi_thread<'a, D>(mat: Arc<Array2<D>>, vector: Vec<D>,
+        op1: Arc<(Fn(&D, &D) -> D) + Sync + Send>, op2: Arc<(Fn(&D, &D) -> D) + Sync + Send>, initial_val: D)
+            -> Result<Vec<D>, &'a str>
         where D: Copy + Sync + Send + 'static {
     if mat.shape()[1] != vector.len() {
         return Err("Incompatible dimensions");
-        
+
     } else {
         let mut result: Vec<D> = Vec::with_capacity(mat.shape()[0]);
         for _ in 0..mat.shape()[0] {
@@ -266,7 +266,7 @@ pub fn generic_mat_vec_mult_multi_thread<'a, D>(mat: Arc<Array2<D>>, vector: Vec
         }
         //let locked_result = Arc::new(Mutex::new(result));
         let arc_vector = Arc::new(vector);
-        
+
         let threads;
         if mat.shape()[0] >= 64 {
             threads = 64;
@@ -301,16 +301,16 @@ pub fn generic_mat_vec_mult_multi_thread<'a, D>(mat: Arc<Array2<D>>, vector: Vec
     }
 }
 
-fn generic_mat_vec_mult_single_thread<'a, D>(mat_lock: &Mutex<Arc<Array2<D>>>, vector: Vec<D>, 
-        op1: Arc<(Fn(&D, &D) -> D) + Sync + Send>, op2: Arc<(Fn(&D, &D) -> D) + Sync + Send>, initial_val: D) 
-            -> Result<Vec<D>, &'a str> 
+fn generic_mat_vec_mult_single_thread<'a, D>(mat_lock: &Mutex<Arc<Array2<D>>>, vector: Vec<D>,
+        op1: Arc<(Fn(&D, &D) -> D) + Sync + Send>, op2: Arc<(Fn(&D, &D) -> D) + Sync + Send>, initial_val: D)
+            -> Result<Vec<D>, &'a str>
         where D: Copy + Sync + Send + 'static {
     let mat = mat_lock.lock().unwrap();
     if mat.shape()[1] != vector.len() {
         return Err("Incompatible dimensions");
     } else {
         let mut result: Vec<D> = Vec::with_capacity(mat.shape()[0]);
-        
+
         for (i, row) in mat.outer_iter().enumerate() {
             result.push(initial_val);
             for j in 0..vector.len() {
@@ -380,7 +380,7 @@ impl Graph {
             status: AgentStatus::Asymptomatic,
             infections: vec![InfectionStatus::NotInfected(0.1)]
         });
-        
+
         nodes.push(Node {
             status: AgentStatus::Asymptomatic,
             infections: if bfs {vec![InfectionStatus::Infected(0)]} else {vec![InfectionStatus::Infected(infection.infection_length)]}
@@ -399,11 +399,11 @@ impl Graph {
         }
     }
 
-    pub fn new_sparse_from_communities(communities: Vec<Vec<Node>>, intra_community_weight: f32, 
+    pub fn new_sparse_from_communities(communities: Vec<Vec<Node>>, intra_community_weight: f32,
                                     inter_community_conn_prob: f32, inter_community_weight: f32) -> Graph {
         let total_nodes = communities.iter().fold(0, |n, c| n + c.len());
         let mut s_w = CsrMatrix::new(total_nodes, total_nodes);
-        
+
         let mut cur_comm = 0;
         let mut comm_start = 0;
         for i in 0..total_nodes {
