@@ -110,7 +110,7 @@ fn random_dense_mat_mul(iters: usize, graph_size: usize, disease: &Disease, mat_
 }
 
 fn random_sparse_mat_mul(iters: usize, graph_size: usize, mat_mul_fun: MatMulFunction, sparsity: f32) -> io::Result<Vec<f32>> {
-    let mat = CsrMatrix::new_with_conn_prob(graph_size, graph_size, sparsity);
+    let mat = CsrMatrix::new_with_conn_prob(graph_size, graph_size, sparsity).sort_rows();
     let vector: Vec<f32> = (0..graph_size).map(|_| random::<f32>()).collect();
     test_mat_mul(iters, &Matrix::Sparse(Mutex::new(Arc::new(mat))), vector, mat_mul_fun, 1)
 }
