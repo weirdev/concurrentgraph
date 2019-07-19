@@ -505,8 +505,8 @@ fn main() -> io::Result<()> {
 
     println!("1/10 sp");
     let sparsity = 0.1;
-    bfs_sim_1(1_000, sparsity, MatMulFunction::SingleThreaded, &flu);
-    bfs_sim_1(1_000, sparsity, MatMulFunction::GPU, &flu);
+    bfs_sim_1(100, sparsity, MatMulFunction::SingleThreaded, &flu);
+    bfs_sim_1(100, sparsity, MatMulFunction::GPU, &flu);
 
     println!("1/100 sp");
     let sparsity = 0.01;
