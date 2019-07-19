@@ -225,14 +225,14 @@ pub fn simulate_basic_mat_stochastic(graph: &mut Graph, steps: usize, diseases: 
 }
 
 pub fn simulate_basic_mat_bfs_cpu(graph: &Graph, steps: usize, diseases: &[&Disease]) {
-    let start_time = SystemTime::now();
+    //let start_time = SystemTime::now();
     let mut determ_weights = match graph.deterministic_infection_weights(diseases[0]) {
         Matrix::Dense(_) => panic!("not implemented"),
         Matrix::Sparse(m) => (**m.lock().unwrap()).clone()
     };
-    let runtime = SystemTime::now().duration_since(start_time)
-        .expect("Time went backwards");
-    println!("CPU determ weights Ran in {} secs", runtime.as_secs());
+    //let runtime = SystemTime::now().duration_since(start_time)
+        //.expect("Time went backwards");
+    //println!("CPU determ weights Ran in {} secs", runtime.as_secs());
 
     /*
     let mut infections: Vec<usize> = graph.nodes.iter().map(|n| match n.infections[0] {
@@ -279,11 +279,11 @@ pub fn simulate_basic_mat_bfs_gpu(graph: &Graph, steps: usize, diseases: &[&Dise
                 InfectionStatus::NotInfected(immun) => immun
             }).collect();
             println!("precalc");
-            let start_time = SystemTime::now();
+            //let start_time = SystemTime::now();
             let determ_w_vals = graph_deterministic_weights_gpu_safe(mat_ptrs, sm.rows, sm.values.len(), immunities, shedding_curve, diseases[0].infection_length, diseases[0].transmission_rate);
-            let runtime = SystemTime::now().duration_since(start_time)
-                .expect("Time went backwards");
-            println!("GPU determ weights Ran in {} secs", runtime.as_secs());
+            //let runtime = SystemTime::now().duration_since(start_time)
+                //.expect("Time went backwards");
+            //println!("GPU determ weights Ran in {} secs", runtime.as_secs());
             println!("calcab");
             let mut determ_weights_m: CsrMatrix<isize> = CsrMatrix::new(sm.rows, sm.columns);
             determ_weights_m.cum_row_indexes = sm.cum_row_indexes.clone();
