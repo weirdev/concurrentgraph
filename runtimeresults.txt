@@ -373,6 +373,7 @@ Ran in 7 secs
 Ran in 9 secs
 500 iters, 50_000 size mat
 Ran in 8 secs
+
 gpu
 3000 iters, 30_000 size mat
 Ran in 15 secs

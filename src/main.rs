@@ -405,41 +405,40 @@ fn main() -> io::Result<()> {
     */
     //mat_mul_test4(100, &flu, MatMulFunction::GPU);
 
-    
+
     //println!("0.01");
     //let sparsity = 0.01;
-    
+
     //println!("multi threaded");
     //mat_mul_test5(5, MatMulFunction::MultiThreaded, sparsity);
 
     //println!("single threaded");
     //mat_mul_test5(500, MatMulFunction::SingleThreaded, sparsity);
-    
+
     //println!("gpu");
     //mat_mul_test5(10_000, MatMulFunction::GPU, sparsity);
-    
-    println!("1/100 sp");
-    let sparsity = 0.01;
+
+    //println!("1/100 sp");
+    //let sparsity = 0.01;
     /*
     println!("multi threaded");
     sparse_sim1(5000, MatMulFunction::MultiThreaded, sparsity, &flu);
     println!("single threaded");
     sparse_sim1(5000, MatMulFunction::SingleThreaded, sparsity, &flu);
     */
-    println!("gpu");
-    sparse_sim1(10000, MatMulFunction::GPU, sparsity, &flu);
+    //println!("gpu");
+    //sparse_sim1(10000, MatMulFunction::GPU, sparsity, &flu);
 
-    println!("1/1000 sp");
-    let sparsity = 0.001;
+    //println!("1/1000 sp");
+    //let sparsity = 0.001;
     /*
     println!("multi threaded");
     sparse_sim1(50000, MatMulFunction::MultiThreaded, sparsity, &flu);
     println!("single threaded");
     sparse_sim1(50000, MatMulFunction::SingleThreaded, sparsity, &flu);
     */
-    println!("gpu");
-    sparse_sim1(10000, MatMulFunction::GPU, sparsity, &flu);
-    
+    //println!("gpu");
+    //sparse_sim1(10000, MatMulFunction::GPU, sparsity, &flu);
 
     /*
     println!("1/1000 sp");
@@ -451,8 +450,8 @@ fn main() -> io::Result<()> {
     mat_mul_test6(500, MatMulFunction::SingleThreaded, sparsity);
     println!("gpu");
     mat_mul_test6(1000, MatMulFunction::GPU, sparsity);
-    
-    
+
+
     println!("sims");
     println!("multi threaded");
     sparse_sim2(500, MatMulFunction::MultiThreaded, sparsity, &flu);
@@ -462,7 +461,7 @@ fn main() -> io::Result<()> {
     sparse_sim2(1000, MatMulFunction::GPU, sparsity, &flu);
     */
 
-    
+
 
     /*
     println!("Sparsity factor 0.001");
@@ -484,9 +483,9 @@ fn main() -> io::Result<()> {
 
     //mat_mul_test3(10_000, 20, 1, 0.01)?;
 
-    //test_hospital_graph_mat_mul("obsSparse5.adjlist", 10000);
-    //test_hospital_graph_mat_mul("obsMod5.adjlist", 5000);
-    //test_hospital_graph_mat_mul("obsDense5.adjlist", 1000);
+    test_hospital_graph_mat_mul("obsSparse5.adjlist", 10000);
+    test_hospital_graph_mat_mul("obsMod5.adjlist", 5000);
+    test_hospital_graph_mat_mul("obsDense5.adjlist", 1000);
 
     //compare_stochastic_deterministic(&flu, 1);
 
