@@ -534,3 +534,6 @@ Ran in 34 secs
 bfs 10 iters, 15_000 size mat
 Ran in 35 secs
 
+GPU
+bfs 40 iters, 5_000 size mat
+Ran in 210 secs
