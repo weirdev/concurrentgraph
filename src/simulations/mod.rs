@@ -278,13 +278,13 @@ pub fn simulate_basic_mat_bfs_gpu(graph: &Graph, steps: usize, diseases: &[&Dise
                 InfectionStatus::Infected(_) => 1.0,
                 InfectionStatus::NotInfected(immun) => immun
             }).collect();
-            println!("precalc");
+            //println!("precalc");
             //let start_time = SystemTime::now();
             let determ_w_vals = graph_deterministic_weights_gpu_safe(mat_ptrs, sm.rows, sm.values.len(), immunities, shedding_curve, diseases[0].infection_length, diseases[0].transmission_rate);
             //let runtime = SystemTime::now().duration_since(start_time)
                 //.expect("Time went backwards");
             //println!("GPU determ weights Ran in {} secs", runtime.as_secs());
-            println!("calcab");
+            
             let mut determ_weights_m: CsrMatrix<isize> = CsrMatrix::new(sm.rows, sm.columns);
             determ_weights_m.cum_row_indexes = sm.cum_row_indexes.clone();
             determ_weights_m.column_indexes = sm.column_indexes.clone();

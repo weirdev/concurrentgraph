@@ -524,3 +524,13 @@ Ran sorted rows in 89 secs
 loaded obsDense5.adjlist
 Ran nonordered rows in 87 secs
 Ran sorted rows in 89 secs
+++++++++++++++++++++++
+1/10 sp
+CPU
+bfs 80 iters, 5_000 size mat
+Ran in 31 secs
+bfs 20 iters, 10_000 size mat
+Ran in 34 secs
+bfs 10 iters, 15_000 size mat
+Ran in 35 secs
+
