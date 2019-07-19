@@ -290,6 +290,48 @@ fn dense_sim1(iters: usize, mat_mul_fun: MatMulFunction, disease: &Disease) {
     test_basic_stochastic(disease, mat_mul_fun, iters).unwrap();
 }
 
+fn bfs_sparse_sim(sparsity: f32, agents: usize, iters: usize,
+                    disease: &Disease, mat_mul_fun: MatMulFunction) -> io::Result<()> {
+    let mat = CsrMatrix::new_with_conn_prob(agents, agents, sparsity).sort_rows();
+    let mut nodes: Vec<Node> = (0..(agents-1)).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
+    nodes.push(Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::Infected(disease.infection_length)] });
+    let mut graph = Graph {
+        nodes: nodes,
+        weights: Matrix::Sparse(Mutex::new(Arc::new(mat)))
+    };
+
+    let start_time = SystemTime::now();
+    //graph.simulate_basic_looped_stochastic(200, &[disease]);
+    match mat_mul_fun {
+        MatMulFunction::GPU => {
+            for _ in 0..iters {
+                simulate_basic_mat_bfs_gpu(&mut graph, 100_000, &[disease]);
+            }
+        },
+        MatMulFunction::SingleThreaded => {
+            for _ in 0..iters {
+                simulate_basic_mat_bfs_cpu(&mut graph, 100_000, &[disease]);
+            }
+        },
+        MatMulFunction::MultiThreaded => panic!("multithreaded bfs not implemented yet")
+    }
+    
+    let runtime = SystemTime::now().duration_since(start_time)
+        .expect("Time went backwards");
+    println!("Ran in {} secs", runtime.as_secs());
+
+    Ok(())
+}
+
+fn bfs_sim_1(iters: usize, sparsity: f32, mat_mul_fun: MatMulFunction, disease: &Disease) {
+    println!("bfs {} iters, 5_000 size mat", iters*8);
+    bfs_sparse_sim(sparsity, 5_000, iters*8, disease, mat_mul_fun).unwrap();
+    println!("bfs {} iters, 10_000 size mat", iters*2);
+    bfs_sparse_sim(sparsity, 10_000, iters*2, disease, mat_mul_fun).unwrap();
+    println!("bfs {} iters, 15_000 size mat", iters);
+    bfs_sparse_sim(sparsity, 15_000, iters, disease, mat_mul_fun).unwrap();
+}
+
 fn test_hospital_graph_mat_mul(file: &str, iters: usize) {
     let sp_mat = CsrMatrix::read_from_adj_list_file(file);
     println!("loaded {}", file);
@@ -345,12 +387,12 @@ fn time_sssp(file: &str, iters: usize) {
     println!("Ran sssp in {} secs {} iters", runtime.as_secs(), iters);
 }
 
-fn compare_stochastic_deterministic(disease: &Disease, iters: usize) -> io::Result<()> {
-    let community: Vec<Node> = (0..100).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
-    let communities: Vec<Vec<Node>> = (0..100).map(|_| community.clone()).collect();
+fn compare_stochastic_deterministic(disease: &Disease, iters: usize, community_size: usize, community_count: usize) -> io::Result<()> {
+    let community: Vec<Node> = (0..community_size).map(|_| Node { status: AgentStatus::Asymptomatic, infections: vec![InfectionStatus::NotInfected(0.1)] }).collect();
+    let communities: Vec<Vec<Node>> = (0..community_count).map(|_| community.clone()).collect();
     let mut graph = Graph::new_sparse_from_communities(communities, 0.2, 0.01, 0.1);
 
-    let steps = 200;
+    let steps = 20_000;
     /*
     let start_time = SystemTime::now();
     simulate_basic_mat_stochastic(&mut graph, steps, &[disease], MatMulFunction::SingleThreaded);
@@ -365,7 +407,7 @@ fn compare_stochastic_deterministic(disease: &Disease, iters: usize) -> io::Resu
     }
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
-    println!("total GPU stoch Ran in {} secs for {} steps", runtime.as_secs(), steps);
+    println!("total GPU stoch Ran {} iters in {} secs for {} steps each", iters, runtime.as_secs(), steps);
 
     let start_time = SystemTime::now();
     for _ in 0..iters {
@@ -374,7 +416,7 @@ fn compare_stochastic_deterministic(disease: &Disease, iters: usize) -> io::Resu
     //graph.simulate_basic_looped_deterministic_shedding_incorrect(200, &[disease]);
     let runtime = SystemTime::now().duration_since(start_time)
         .expect("Time went backwards");
-    println!("total CPU determ Ran in {} secs", runtime.as_secs());
+    println!("total CPU determ Ran {} iters in {} secs", iters, runtime.as_secs());
     Ok(())
 }
 
@@ -461,7 +503,20 @@ fn main() -> io::Result<()> {
     sparse_sim2(1000, MatMulFunction::GPU, sparsity, &flu);
     */
 
+    println!("1/10 sp");
+    let sparsity = 0.01;
+    bfs_sim_1(1000, sparsity, MatMulFunction::SingleThreaded, &flu);
+    bfs_sim_1(1000, sparsity, MatMulFunction::GPU, &flu);
 
+    println!("1/100 sp");
+    let sparsity = 0.01;
+    bfs_sim_1(1000, sparsity, MatMulFunction::SingleThreaded, &flu);
+    bfs_sim_1(1000, sparsity, MatMulFunction::GPU, &flu);
+
+    println!("1/1000 sp");
+    let sparsity = 0.001;
+    bfs_sim_1(1000, sparsity, MatMulFunction::SingleThreaded, &flu);
+    bfs_sim_1(1000, sparsity, MatMulFunction::GPU, &flu);
 
     /*
     println!("Sparsity factor 0.001");
@@ -483,11 +538,11 @@ fn main() -> io::Result<()> {
 
     //mat_mul_test3(10_000, 20, 1, 0.01)?;
 
-    test_hospital_graph_mat_mul("obsSparse5.adjlist", 50_000);
-    test_hospital_graph_mat_mul("obsMod5.adjlist", 50_000);
-    test_hospital_graph_mat_mul("obsDense5.adjlist", 50_000);
+    //test_hospital_graph_mat_mul("obsSparse5.adjlist", 50_000);
+    //test_hospital_graph_mat_mul("obsMod5.adjlist", 50_000);
+    //test_hospital_graph_mat_mul("obsDense5.adjlist", 50_000);
 
-    //compare_stochastic_deterministic(&flu, 1);
+    //compare_stochastic_deterministic(&flu, 10, 100, 100);
 
     //time_sssp("obsSparse5.adjlist", 1000);
 

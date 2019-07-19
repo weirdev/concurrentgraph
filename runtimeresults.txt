@@ -513,3 +513,14 @@ sim 2000 iters, 75_000 size mat
 Ran in 35 secs
 sim 1000 iters, 100_000 size mat
 Ran in 23 secs
+
+++++++++++++++++++++++++
+loaded obsSparse5.adjlist
+Ran nonordered rows in 81 secs
+Ran sorted rows in 80 secs
+loaded obsMod5.adjlist
+Ran nonordered rows in 87 secs
+Ran sorted rows in 89 secs
+loaded obsDense5.adjlist
+Ran nonordered rows in 87 secs
+Ran sorted rows in 89 secs
