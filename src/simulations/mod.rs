@@ -234,6 +234,7 @@ pub fn simulate_basic_mat_bfs_cpu(graph: &Graph, steps: usize, diseases: &[&Dise
         .expect("Time went backwards");
     println!("CPU determ weights Ran in {} secs", runtime.as_secs());
 
+    /*
     let mut infections: Vec<usize> = graph.nodes.iter().map(|n| match n.infections[0] {
         InfectionStatus::Infected(_) => 1,
         InfectionStatus::NotInfected(_) => 0
@@ -260,6 +261,7 @@ pub fn simulate_basic_mat_bfs_cpu(graph: &Graph, steps: usize, diseases: &[&Dise
 
     let infection_count: usize = infections.iter().sum();
     println!("{} infections", infection_count);
+    */
 }
 
 pub fn simulate_basic_mat_bfs_gpu(graph: &Graph, steps: usize, diseases: &[&Disease]) {
@@ -292,7 +294,7 @@ pub fn simulate_basic_mat_bfs_gpu(graph: &Graph, steps: usize, diseases: &[&Dise
         }
     };
 
-
+    /*
     let infections: Vec<usize> = graph.nodes.iter().map(|n| match n.infections[0] {
         InfectionStatus::Infected(_) => 1,
         InfectionStatus::NotInfected(_) => 0
@@ -342,6 +344,7 @@ pub fn simulate_basic_mat_bfs_gpu(graph: &Graph, steps: usize, diseases: &[&Dise
 
     let infection_count: usize = out_infections.iter().sum();
     println!("{} infections", infection_count);
+    */
 }
 
 pub fn simulate_basic_looped_deterministic(graph: &mut Graph, steps: usize, diseases: &[&Disease]) {
