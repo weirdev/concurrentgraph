@@ -537,3 +537,20 @@ Ran in 35 secs
 GPU
 bfs 40 iters, 5_000 size mat
 Ran in 210 secs
+//rest timed out
+
+1/100 sp
+CPU
+bfs 600 iters, 5_000 size mat
+Ran in 22 secs
+bfs 150 iters, 10_000 size mat
+Ran in 23 secs
+bfs 75 iters, 15_000 size mat
+Ran in 28 secs
+
+GPU
+bfs 40 iters, 5_000 size mat
+Ran in 18 secs
+bfs 10 iters, 10_000 size mat
+Ran in 33 secs
+

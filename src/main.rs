@@ -508,10 +508,10 @@ fn main() -> io::Result<()> {
     //bfs_sim_1(10, sparsity, MatMulFunction::SingleThreaded, &flu);
     //bfs_sim_1(5, sparsity, MatMulFunction::GPU, &flu);
 
-    println!("1/100 sp");
-    let sparsity = 0.01;
-    bfs_sim_1(75, sparsity, MatMulFunction::SingleThreaded, &flu);
-    bfs_sim_1(5, sparsity, MatMulFunction::GPU, &flu);
+    //println!("1/100 sp");
+    //let sparsity = 0.01;
+    //bfs_sim_1(75, sparsity, MatMulFunction::SingleThreaded, &flu);
+    //bfs_sim_1(5, sparsity, MatMulFunction::GPU, &flu);
 
     println!("1/1000 sp");
     let sparsity = 0.001;
