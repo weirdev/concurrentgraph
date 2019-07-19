@@ -483,9 +483,9 @@ fn main() -> io::Result<()> {
 
     //mat_mul_test3(10_000, 20, 1, 0.01)?;
 
-    test_hospital_graph_mat_mul("obsSparse5.adjlist", 10_000);
-    test_hospital_graph_mat_mul("obsMod5.adjlist", 10_000);
-    test_hospital_graph_mat_mul("obsDense5.adjlist", 10_000);
+    test_hospital_graph_mat_mul("obsSparse5.adjlist", 50_000);
+    test_hospital_graph_mat_mul("obsMod5.adjlist", 50_000);
+    test_hospital_graph_mat_mul("obsDense5.adjlist", 50_000);
 
     //compare_stochastic_deterministic(&flu, 1);
 
