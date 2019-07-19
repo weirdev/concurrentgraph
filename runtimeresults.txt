@@ -365,6 +365,7 @@ Ran in 2 secs
 Ran in 3 secs
 500 iters, 50_000 size mat
 Ran in 2 secs
+
 single threaded
 1500 iters, 30_000 size mat
 Ran in 7 secs
@@ -385,11 +386,13 @@ multi threaded
 Ran in 12 secs
 500 iters, 100_000 size mat
 Ran in 11 secs
+
 single threaded
 1000 iters, 75_000 size mat
 Ran in 42 secs
 500 iters, 100_000 size mat
 Ran in 39 secs
+
 gpu
 2000 iters, 75_000 size mat
 Ran in 25 secs

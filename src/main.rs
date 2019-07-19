@@ -406,41 +406,40 @@ fn main() -> io::Result<()> {
     //mat_mul_test4(100, &flu, MatMulFunction::GPU);
 
     
-    println!("0.01");
-    let sparsity = 0.01;
+    //println!("0.01");
+    //let sparsity = 0.01;
     
     //println!("multi threaded");
     //mat_mul_test5(5, MatMulFunction::MultiThreaded, sparsity);
 
-    println!("single threaded");
-    mat_mul_test5(500, MatMulFunction::SingleThreaded, sparsity);
+    //println!("single threaded");
+    //mat_mul_test5(500, MatMulFunction::SingleThreaded, sparsity);
     
     //println!("gpu");
     //mat_mul_test5(10_000, MatMulFunction::GPU, sparsity);
     
-    /*
     println!("1/100 sp");
-    
     let sparsity = 0.01;
+    /*
     println!("multi threaded");
     sparse_sim1(5000, MatMulFunction::MultiThreaded, sparsity, &flu);
     println!("single threaded");
     sparse_sim1(5000, MatMulFunction::SingleThreaded, sparsity, &flu);
-    
+    */
     println!("gpu");
-    sparse_sim1(1000, MatMulFunction::GPU, sparsity, &flu);
+    sparse_sim1(10000, MatMulFunction::GPU, sparsity, &flu);
 
     println!("1/1000 sp");
-    
     let sparsity = 0.001;
+    /*
     println!("multi threaded");
     sparse_sim1(50000, MatMulFunction::MultiThreaded, sparsity, &flu);
     println!("single threaded");
     sparse_sim1(50000, MatMulFunction::SingleThreaded, sparsity, &flu);
-    
-    println!("gpu");
-    sparse_sim1(1000, MatMulFunction::GPU, sparsity, &flu);
     */
+    println!("gpu");
+    sparse_sim1(10000, MatMulFunction::GPU, sparsity, &flu);
+    
 
     /*
     println!("1/1000 sp");
